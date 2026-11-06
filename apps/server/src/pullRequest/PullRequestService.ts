@@ -34,6 +34,8 @@ import {
   type PullRequestDiffStat,
   type PullRequestDiffInput,
   type PullRequestChangeBreakdown,
+  type PullRequestCheckLog,
+  type PullRequestCheckLogInput,
   type PullRequestFilesViewedResult,
   type PullRequestDiffResult,
   type PullRequestInvalidateInput,
@@ -250,6 +252,9 @@ export class PullRequestService extends Context.Service<
     readonly changeBreakdown: (
       input: PullRequestRef,
     ) => Effect.Effect<PullRequestChangeBreakdown, PullRequestError>;
+    readonly checkLog: (
+      input: PullRequestCheckLogInput,
+    ) => Effect.Effect<PullRequestCheckLog, PullRequestError>;
     readonly runAction: (input: PullRequestActionInput) => Effect.Effect<void, PullRequestError>;
     readonly update: (input: PullRequestUpdateInput) => Effect.Effect<void, PullRequestError>;
     readonly comment: (input: PullRequestCommentInput) => Effect.Effect<void, PullRequestError>;
@@ -548,6 +553,9 @@ function withRateLimitBackoff(
     ...(api.getChangeRequestChecks === undefined
       ? {}
       : { getChangeRequestChecks: wrap("getChangeRequestChecks", api.getChangeRequestChecks) }),
+    ...(api.getCheckLog === undefined
+      ? {}
+      : { getCheckLog: interactive("getCheckLog", api.getCheckLog) }),
     ...(api.getChangeRequestSummary === undefined
       ? {}
       : {
@@ -1896,6 +1904,20 @@ export const make = Effect.gen(function* () {
           }).pipe(Effect.mapError(toPullRequestError("threadComments")));
         },
       ),
+    );
+
+  const checkLog: PullRequestService["Service"]["checkLog"] = (input) =>
+    requireProject(input).pipe(
+      Effect.flatMap((project) => {
+        const read = project.api.getCheckLog;
+        if (read === undefined) return Effect.succeed(null);
+        return read({
+          cwd: project.project.workspaceRoot,
+          repository: project.repository,
+          host: project.host,
+          url: input.url,
+        }).pipe(Effect.mapError(toPullRequestError("checkLog")));
+      }),
     );
 
   const diffUncached: PullRequestService["Service"]["diff"] = (input) =>
@@ -3741,6 +3763,7 @@ export const make = Effect.gen(function* () {
     changeBreakdown: credentialCached((input) =>
       Cache.get(changeBreakdownCache, refCacheKey(input)),
     ),
+    checkLog,
     runAction: runActionAndInvalidate,
     update: invalidatedByMutation(update),
     comment: invalidatedByMutation(comment),

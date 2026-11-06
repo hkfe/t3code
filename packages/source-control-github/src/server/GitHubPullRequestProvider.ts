@@ -628,6 +628,7 @@ export const make = Effect.gen(function* () {
 
     getFileStats: (input) =>
       cli.getPullRequestFileStats(input).pipe(Effect.mapError(fail("getFileStats"))),
+    getCheckLog: (input) => cli.getCheckJobLog(input).pipe(Effect.mapError(fail("getCheckLog"))),
     setFilesViewed: (input) =>
       cli.setPullRequestFilesViewed(input).pipe(Effect.mapError(fail("setFilesViewed"))),
 

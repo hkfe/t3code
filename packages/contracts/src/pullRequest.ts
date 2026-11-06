@@ -109,6 +109,8 @@ export const PullRequestCheck = Schema.Struct({
   description: Schema.NullOr(Schema.String),
   url: Schema.NullOr(Schema.String),
   required: Schema.optional(Schema.Boolean),
+  startedAt: Schema.optional(IsoDateTime),
+  completedAt: Schema.optional(IsoDateTime),
 });
 export type PullRequestCheck = typeof PullRequestCheck.Type;
 
@@ -402,6 +404,23 @@ export const PullRequestRef = Schema.Struct({
   number: PositiveInt,
 });
 export type PullRequestRef = typeof PullRequestRef.Type;
+
+export const PullRequestCheckLogInput = Schema.Struct({
+  ...PullRequestRef.fields,
+  url: TrimmedNonEmptyString,
+});
+export type PullRequestCheckLogInput = typeof PullRequestCheckLogInput.Type;
+
+/** Null when the check's host keeps its log to itself, such as an external app. */
+export const PullRequestCheckLog = Schema.NullOr(
+  Schema.Struct({
+    text: Schema.String,
+    /** The text is the failing step rather than the log's tail. */
+    failedStep: Schema.Boolean,
+    truncated: Schema.Boolean,
+  }),
+);
+export type PullRequestCheckLog = typeof PullRequestCheckLog.Type;
 
 export const PullRequestRoutingIdentityInput = Schema.Struct({
   host: TrimmedNonEmptyString,

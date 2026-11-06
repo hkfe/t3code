@@ -2737,6 +2737,8 @@ export const layerWsRpc = (
           withPullRequestViewer(input, pullRequests.filesViewed(input)),
         [WS_METHODS.pullRequestsChangeBreakdown]: (input) =>
           withPullRequestViewer(input, pullRequests.changeBreakdown(input)),
+        [WS_METHODS.pullRequestsCheckLog]: (input) =>
+          withPullRequestViewer(input, pullRequests.checkLog(input)),
         [WS_METHODS.pullRequestsSetFilesViewed]: (input) =>
           withPullRequestViewer(input, pullRequests.setFilesViewed(input)),
         [WS_METHODS.pullRequestsRunAction]: (input) =>

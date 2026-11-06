@@ -35,6 +35,7 @@ import {
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { projectEnvironment } from "~/state/projects";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
+import { useRightPanelStore } from "~/rightPanelStore";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { readEnvironmentScope, useEnvironmentScope } from "~/state/session";
 
@@ -142,6 +143,9 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
           title: "Plan saved to workspace",
           description: result.value.relativePath,
         });
+        if (threadRef) {
+          useRightPanelStore.getState().openFile(threadRef, result.value.relativePath);
+        }
         return;
       }
       if (!isAtomCommandInterrupted(result)) {

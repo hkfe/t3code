@@ -566,6 +566,15 @@ function realTimestamp(value: string | null | undefined): string | null {
   return at === null || at === UNSET_TIMESTAMP ? null : at;
 }
 
+function timestamps(check: CheckFields): Pick<PullRequestCheck, "startedAt" | "completedAt"> {
+  const startedAt = realTimestamp(check.startedAt);
+  const completedAt = realTimestamp(check.completedAt);
+  return {
+    ...(startedAt === null ? {} : { startedAt }),
+    ...(completedAt === null ? {} : { completedAt }),
+  };
+}
+
 function isNamelessCheck(raw: CheckFields): boolean {
   return trimmed(raw.name) === null && trimmed(raw.context) === null;
 }
@@ -588,6 +597,7 @@ function toCheckEntries(raw: ReadonlyArray<CheckFields> | null | undefined): Rea
           description: trimmed(check.description),
           url: trimmed(check.detailsUrl) ?? trimmed(check.targetUrl),
           ...(typeof check.isRequired === "boolean" ? { required: check.isRequired } : {}),
+          ...timestamps(check),
         },
         workflowName: trimmed(check.workflowName),
         at:

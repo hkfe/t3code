@@ -10,6 +10,7 @@ import type {
   PullRequestChecksState,
   PullRequestCheck,
   PullRequestChecks,
+  PullRequestCheckLog,
   PullRequestComment,
   PullRequestFileViewed,
   PullRequestCommit,
@@ -364,6 +365,11 @@ export interface PullRequestProviderApi {
   readonly getChangeRequest: (
     input: ProviderRepositoryRef & { readonly number: number },
   ) => Effect.Effect<ProviderChangeRequestDetail, PullRequestProviderError>;
+
+  /** Null when the check's URL names no log this host serves. */
+  readonly getCheckLog?: (
+    input: ProviderRepositoryRef & { readonly url: string },
+  ) => Effect.Effect<PullRequestCheckLog, PullRequestProviderError>;
 
   /**
    * For a provider that holds change request reads of its own: called when the service drops its

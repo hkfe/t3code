@@ -450,6 +450,12 @@ export function createPullRequestEnvironmentAtoms<R, E>(
       staleTimeMs: 60_000,
       refreshTrigger: ({ environmentId }) => refreshes({ environmentId, input: {} }),
     }),
+    checkLog: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:pull-requests:check-log",
+      tag: WS_METHODS.pullRequestsCheckLog,
+      execute: (input) => routedRequest(WS_METHODS.pullRequestsCheckLog, input),
+      staleTimeMs: 30_000,
+    }),
     /**
      * One write in flight per change request: the host applies these in order, and a reader
      * ticking down a file list faster than the round trip would otherwise race their own presses.

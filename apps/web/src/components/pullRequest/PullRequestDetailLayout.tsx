@@ -70,7 +70,7 @@ export function PullRequestDetailTabBar<Tab extends string>({
   inert,
   children,
 }: {
-  tabs: ReadonlyArray<{ readonly value: Tab; readonly label: string }>;
+  tabs: ReadonlyArray<{ readonly value: Tab; readonly label: string; readonly badge?: ReactNode }>;
   value: Tab;
   onValueChange?: (tab: Tab) => void;
   onTabIntent?: (tab: Tab) => void;
@@ -101,6 +101,7 @@ export function PullRequestDetailTabBar<Tab extends string>({
             onFocus={onTabIntent ? () => onTabIntent(tab.value) : undefined}
           >
             {tab.label}
+            {tab.badge}
           </Toggle>
         ))}
       </ToggleGroup>
