@@ -107,6 +107,7 @@ import { openOnHostLabel } from "./pullRequestLinkContextMenu";
 import { PullRequestMarkdownContext } from "./PullRequestMarkdown";
 import { pullRequestAutolinkPlugins } from "./pullRequestMarkdown.logic";
 import { PullRequestComposer } from "./PullRequestComposer";
+import { PullRequestChecksTab, PullRequestChecksTabBadge } from "./PullRequestChecksTab";
 import { PullRequestSummaryTab } from "./PullRequestSummaryTab";
 import { PullRequestTimelineTab } from "./PullRequestTimelineTab";
 import {
@@ -200,6 +201,7 @@ const TABS: ReadonlyArray<{ value: PullRequestDetailTab; label: string }> = [
   { value: "summary", label: "Summary" },
   { value: "guide", label: "Guide" },
   { value: "timeline", label: "Timeline" },
+  { value: "checks", label: "Checks" },
   { value: "code", label: "Code" },
 ];
 
@@ -425,6 +427,9 @@ export function PullRequestDetailPanel({
     },
     timeline: (node: HTMLElement | null) => {
       scrollerByTab.current.timeline = node;
+    },
+    checks: (node: HTMLElement | null) => {
+      scrollerByTab.current.checks = node;
     },
     code: (node: HTMLElement | null) => {
       scrollerByTab.current.code = node;
@@ -1576,7 +1581,11 @@ export function PullRequestDetailPanel({
 
         {detail ? (
           <PullRequestDetailTabBar
-            tabs={visibleTabs}
+            tabs={visibleTabs.map((item) =>
+              item.value === "checks" && !checksStale
+                ? { ...item, badge: <PullRequestChecksTabBadge checks={detail.checks} /> }
+                : item,
+            )}
             value={tab}
             onValueChange={selectTab}
             onTabIntent={(item) => {
@@ -1752,6 +1761,24 @@ export function PullRequestDetailPanel({
                   fixCheckLabel={handoffLabels.fixCheck}
                   {...(canFixFindings ? { onFixFinding: startFixFinding } : {})}
                   onRefresh={refreshDetail}
+                  onRefreshChecks={refreshFromHost}
+                  onShowChecks={() => selectTab("checks")}
+                />
+              </div>
+            ) : null}
+            {mountedTabs.has("checks") ? (
+              <div className={cn("absolute inset-0", tab !== "checks" && "invisible")}>
+                <PullRequestChecksTab
+                  scrollerRef={scrollerRefs.checks}
+                  environmentId={environmentId}
+                  reference={reference}
+                  threadRef={threadRef}
+                  checks={detail.checks}
+                  stale={checksStale}
+                  openLabel={openOnHostText}
+                  pendingFinding={handoff}
+                  fixCheckLabel={handoffLabels.fixCheck}
+                  {...(canFixFindings ? { onFixFinding: startFixFinding } : {})}
                   onRefreshChecks={refreshFromHost}
                 />
               </div>

@@ -42,6 +42,7 @@ const reads = new Set<string>([
   WS_METHODS.pullRequestsDiffFileContents,
   WS_METHODS.pullRequestsFilesViewed,
   WS_METHODS.pullRequestsChangeBreakdown,
+  WS_METHODS.pullRequestsCheckLog,
   WS_METHODS.pullRequestsReviewerCandidates,
   WS_METHODS.pullRequestsLabelCandidates,
 ]);

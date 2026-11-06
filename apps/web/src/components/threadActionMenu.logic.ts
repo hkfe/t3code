@@ -20,6 +20,7 @@ export type ThreadActionMenuId =
   | "rename"
   | "regenerate-title"
   | "mark-unread"
+  | "open-to-side"
   | "share-guest"
   | "copy"
   | "copy-path"
@@ -104,6 +105,7 @@ export function threadActionRequiresOperate(action: ThreadActionMenuId): boolean
     "new-thread-on-branch",
     "project-settings",
     "mark-unread",
+    "open-to-side",
     "share-guest",
     "copy",
     "copy-path",
@@ -117,6 +119,7 @@ export function buildThreadActionMenuItems(
   state: ThreadActionMenuState,
 ): ReadonlyArray<ContextMenuItem<ThreadActionMenuId>> {
   const items: ReadonlyArray<ContextMenuItem<ThreadActionMenuId>> = [
+    { id: "open-to-side", label: "Open to the side", icon: "message-square" },
     ...(state.canFind
       ? [{ id: "find" as const, label: "Find in thread", icon: "text-search" }]
       : []),

@@ -215,6 +215,7 @@ import {
   type SidebarSection,
   resolveSidebarRowThreadId,
 } from "./Sidebar.logic";
+import { openThreadToTheSide } from "./WorkspaceSplits";
 import {
   createSidebarCollisionDetection,
   createSidebarSortingStrategy,
@@ -2790,6 +2791,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           }
           case "mark-unread":
             markThreadUnread(threadRef);
+            return;
+          case "open-to-side":
+            openThreadToTheSide(threadRef);
             return;
           case "copy-path":
             if (!threadWorkspacePath) {

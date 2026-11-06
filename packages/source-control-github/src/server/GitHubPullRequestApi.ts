@@ -12,6 +12,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import { GraphQLClient, GraphQLClientError, GraphQLGroup, GraphQLResolver } from "effect/graphql";
 import { HttpClient } from "effect/http";
+import { excerptGitHubJobLog, parseGitHubActionsJobUrl } from "./gitHubCheckLog.ts";
 import * as RequestResolver from "effect/RequestResolver";
 import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
@@ -23,6 +24,7 @@ import {
   TrimmedNonEmptyString,
   type PullRequestAction,
   type PullRequestStackHead,
+  type PullRequestCheckLog,
   type PullRequestActor,
   type PullRequestComment,
   type PullRequestCommit,
@@ -555,6 +557,11 @@ export class GitHubPullRequestApi extends Context.Service<
       readonly host: string;
       readonly number: number;
     }) => Effect.Effect<GitHubPullRequestFileStats, GitHubPullRequestApiError>;
+
+    readonly getCheckJobLog: (input: {
+      readonly host: string;
+      readonly url: string;
+    }) => Effect.Effect<PullRequestCheckLog, GitHubPullRequestApiError>;
 
     /**
      * GitHub takes a single path per mutation, so a burst is batched with aliases into one
@@ -2687,6 +2694,20 @@ export const make = Effect.gen(function* () {
         );
       },
     ),
+
+    getCheckJobLog: Effect.fn("GitHubPullRequestApi.getCheckJobLog")(function* (input) {
+      const job = parseGitHubActionsJobUrl(input.url, normalizeHost(input.host));
+      if (job === null) return null;
+      const response = yield* api.rest({
+        host: input.host,
+        operation: "getCheckJobLog",
+        // Redirects to a presigned download; fetch drops the token on the way there.
+        path: `repos/${job.owner}/${job.name}/actions/jobs/${job.jobId}/logs`,
+      });
+      // ponytail: a log past the 8 MiB read cap loses its end; ask for a byte range if that bites.
+      const excerpt = excerptGitHubJobLog(response.body);
+      return { ...excerpt, truncated: excerpt.truncated || response.truncated };
+    }),
 
     getPullRequestFileStats: Effect.fn("GitHubPullRequestApi.getPullRequestFileStats")(
       function (input) {

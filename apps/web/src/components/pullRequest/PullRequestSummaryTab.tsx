@@ -391,6 +391,7 @@ export function PullRequestSummaryTab({
   onFixFinding,
   onRefresh,
   onRefreshChecks = onRefresh,
+  onShowChecks,
 }: {
   scrollerRef: (node: HTMLDivElement | null) => void;
   environmentId: EnvironmentId;
@@ -406,6 +407,7 @@ export function PullRequestSummaryTab({
   onFixFinding?: (finding: PullRequestFinding) => void;
   onRefresh: () => void;
   onRefreshChecks?: () => void;
+  onShowChecks?: () => void;
 }) {
   const terminology = sourceControlClients.get(detail.provider).changeRequest;
   const [shown, setShown] = useState({ url: detail.url, count: COMMENT_PAGE });
@@ -791,7 +793,18 @@ export function PullRequestSummaryTab({
         </div>
       </Section>
 
-      <Section key={`checks:${detail.url}`} title="Checks" defaultOpen={false}>
+      <Section
+        key={`checks:${detail.url}`}
+        title="Checks"
+        defaultOpen={false}
+        actions={
+          onShowChecks && detail.checks.length > 0 ? (
+            <Button size="xs" variant="ghost-muted" onClick={onShowChecks}>
+              View logs
+            </Button>
+          ) : undefined
+        }
+      >
         {checksStale ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>Check details are out of date.</span>

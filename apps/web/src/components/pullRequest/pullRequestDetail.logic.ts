@@ -963,7 +963,7 @@ export function buildFixFindingsHandoff(input: {
 
 export type PullRequestFinding =
   | { readonly kind: "thread"; readonly thread: PullRequestReviewThread }
-  | { readonly kind: "check"; readonly check: PullRequestCheck }
+  | { readonly kind: "check"; readonly check: PullRequestCheck; readonly log?: string }
   | { readonly kind: "comment"; readonly comment: PullRequestComment };
 
 export function pullRequestFindingKey(finding: PullRequestFinding): string {
@@ -1009,14 +1009,33 @@ export function buildFixFindingHandoff(input: {
     };
   }
   const check = input.finding.check;
+  const log = input.finding.log?.trim().split("\n").slice(-CHECK_LOG_PROMPT_LINES).join("\n");
   return {
     prompt: [
-      "Fix the failing check quoted below. Reproduce it locally first. The name is all the host reported, and the run may fail for a reason the code cannot show.",
+      log
+        ? "Fix the failing check quoted below. Reproduce it locally first. The end of its log follows; the run may fail for a reason the code cannot show."
+        : "Fix the failing check quoted below. Reproduce it locally first. The name is all the host reported, and the run may fail for a reason the code cannot show.",
       ...preamble,
       `> ${boundedField(check.description ? `${check.name}: ${check.description}` : check.name)}`,
+      ...(log ? ["~~~~text", log, "~~~~"] : []),
     ].join("\n"),
     reviewComments: [],
   };
+}
+
+const CHECK_LOG_PROMPT_LINES = 150;
+
+/** How long a finished check ran, such as `3m 12s`. */
+export function pullRequestCheckDuration(
+  check: Pick<PullRequestCheck, "startedAt" | "completedAt">,
+): string | null {
+  if (!check.startedAt || !check.completedAt) return null;
+  const seconds = Math.round((Date.parse(check.completedAt) - Date.parse(check.startedAt)) / 1000);
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
 }
 
 export function buildResolveConflictsPrompt(input: {

@@ -127,6 +127,7 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import { AsyncResult } from "effect/reactivity";
 import { isElectron } from "../env";
+import { ThreadSwitcherHost, WorkspaceSplitPanes } from "./WorkspaceSplits";
 import { useDiffPanelStore } from "../diffPanelStore";
 import { useActiveThreadRef } from "../hooks/useActiveThreadRef";
 import { composerRequiresModifier } from "../composer-logic";
@@ -4014,7 +4015,19 @@ export default function ChatView(props: ChatViewProps) {
       cwd={activeWorkspaceRoot}
       checkpoints={serverProjection?.checkpoints}
     >
-      {content}
+      {embedded ? (
+        content
+      ) : (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <ThreadSwitcherHost activeThreadRef={activeThreadRef} />
+          <WorkspaceSplitPanes
+            mainRef={activeThreadRef}
+            enabled={!rightPanelMaximized && !prefersPlanSidebarSheet}
+          >
+            {content}
+          </WorkspaceSplitPanes>
+        </div>
+      )}
     </FileMetadataThreadProvider>
   );
 }
