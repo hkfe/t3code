@@ -320,8 +320,8 @@ function ThreadSwitcher(props: {
   };
   // Windows 11 Alt+Tab: a dimmed screen and a frosted row of window cards, the selected one ringed.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs">
-      <div className="flex max-w-[92vw] flex-col items-center gap-3 rounded-2xl border border-border/60 bg-popover/90 p-3 shadow-2xl backdrop-blur-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25">
+      <div className="flex max-w-[92vw] flex-col items-center gap-3 rounded-3xl liquid-glass p-3">
         <div
           role="listbox"
           aria-label="Recent threads"
@@ -341,8 +341,8 @@ function ThreadSwitcher(props: {
                 className={cn(
                   "flex h-60 w-64 cursor-pointer flex-col gap-2 rounded-xl border p-3 text-left ring-2 transition-colors",
                   selected
-                    ? "border-transparent bg-accent ring-primary"
-                    : "border-border/60 bg-background/60 ring-transparent hover:bg-accent/40",
+                    ? "border-white/10 bg-white/12 ring-primary"
+                    : "border-white/5 bg-white/4 ring-transparent hover:bg-white/8",
                 )}
               >
                 <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
@@ -389,7 +389,7 @@ function ThreadSwitcher(props: {
 }
 
 /** The thread's last message. The shell list leaves message text out, so this reads the thread detail, only while the switcher is open. */
-function SwitcherPreview(props: { threadRef: ScopedThreadRef }) {
+export function SwitcherPreview(props: { threadRef: ScopedThreadRef }) {
   const items = useThreadVisibleTurnItems(props.threadRef);
   const last = items
     .map((entry) => entry.item)

@@ -2,11 +2,13 @@ import { parsePatchFiles } from "@pierre/diffs/utils/parsePatchFiles";
 import { parseDiffFromFile } from "@pierre/diffs";
 import type { FileDiffMetadata } from "@pierre/diffs/types";
 import { READABLE_LIGHT_THEME_NAME } from "./readableSyntaxTheme";
+import { WARM_DARK_THEME_NAME } from "./warmSyntaxTheme";
 
-// Light mode uses a darker pierre-light so syntax stays readable on every code surface.
+// Light mode uses a darker pierre-light so syntax stays readable on every code surface; dark
+// mode uses a calmer, warm pierre-dark.
 export const DIFF_THEME_NAMES = {
   light: READABLE_LIGHT_THEME_NAME,
-  dark: "pierre-dark",
+  dark: WARM_DARK_THEME_NAME,
 } as const;
 
 export type DiffThemeName = (typeof DIFF_THEME_NAMES)[keyof typeof DIFF_THEME_NAMES];

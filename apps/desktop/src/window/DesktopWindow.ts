@@ -394,7 +394,14 @@ export const make = Effect.gen(function* () {
       show: false,
       autoHideMenuBar: true,
       ...(environment.platform === "darwin" ? { disableAutoHideCursor: true } : {}),
-      backgroundColor: getInitialWindowBackgroundColor(shouldUseDarkColors),
+      backgroundColor:
+        environment.platform === "darwin"
+          ? "#00000000"
+          : getInitialWindowBackgroundColor(shouldUseDarkColors),
+      // macOS: the native sidebar material shows the wallpaper through the see-through sidebar.
+      ...(environment.platform === "darwin"
+        ? { vibrancy: "sidebar" as const, visualEffectState: "active" as const }
+        : {}),
       ...iconOption,
       title: environment.displayName,
       ...getWindowTitleBarOptions(shouldUseDarkColors, environment.platform),
