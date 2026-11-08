@@ -55,6 +55,10 @@
       "types": "./src/agentAwareness.ts",
       "import": "./src/agentAwareness.ts"
     },
+    "./appDisplayName": {
+      "types": "./src/appDisplayName.ts",
+      "import": "./src/appDisplayName.ts"
+    },
     "./git": {
       "types": "./src/git.ts",
       "import": "./src/git.ts"

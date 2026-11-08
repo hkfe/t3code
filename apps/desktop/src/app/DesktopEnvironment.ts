@@ -17,6 +17,7 @@ import { resolveLinuxDesktopEntryName } from "./DesktopEarlyElectronStartup.ts";
 import { resolveDesktopBaseDir, resolveDesktopStateDir } from "./DesktopStatePaths.ts";
 import { isNightlyDesktopVersion } from "../updates/updateChannels.ts";
 import type { OtlpProtocol } from "@t3tools/shared/observability";
+import { formatAppDisplayName } from "@t3tools/shared/appDisplayName";
 
 export interface MakeDesktopEnvironmentInput {
   readonly dirname: string;
@@ -86,6 +87,9 @@ export class DesktopEnvironment extends Context.Service<
 >()("@t3tools/desktop/app/DesktopEnvironment") {}
 
 const APP_BASE_NAME = "T3 Code";
+declare const __T3CODE_BUILD_COMMIT_HASH__: string | undefined;
+const BUILD_COMMIT_HASH =
+  typeof __T3CODE_BUILD_COMMIT_HASH__ === "undefined" ? "dev" : __T3CODE_BUILD_COMMIT_HASH__;
 
 function resolveDesktopAppStageLabel(input: {
   readonly isDevelopment: boolean;
@@ -106,7 +110,7 @@ export function resolveDesktopAppBranding(input: {
   return {
     baseName: APP_BASE_NAME,
     stageLabel,
-    displayName: `${APP_BASE_NAME} (${stageLabel})`,
+    displayName: formatAppDisplayName(BUILD_COMMIT_HASH),
   };
 }
 

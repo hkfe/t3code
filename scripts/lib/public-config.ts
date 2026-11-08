@@ -1,4 +1,5 @@
 // @effect-diagnostics nodeBuiltinImport:off - Build bootstrap reads optional root env files before an Effect runtime exists.
+import * as NodeChildProcess from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import * as NodeURL from "node:url";
@@ -20,6 +21,18 @@ export interface T3CodePublicConfig {
 type Environment = Readonly<Record<string, string | undefined>>;
 
 const REPO_ROOT = NodePath.resolve(NodeURL.fileURLToPath(import.meta.url), "../../..");
+
+export function resolveBuildCommitHash(): string {
+  try {
+    return NodeChildProcess.execFileSync("git", ["rev-parse", "--short=7", "HEAD"], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "dev";
+  }
+}
 
 export function loadRepoEnv({
   baseEnv = process.env,
