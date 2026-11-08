@@ -1,26 +1,18 @@
 import { documentChipKindForFileName } from "~/pierre-icons";
 import { isSvgAttachment } from "@t3tools/shared/image";
-import { useRenderedAppearance } from "../../hooks/useTheme";
 import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
 import { ReadOnlySourcePreview } from "../files/AttachmentFilePreview";
 import { useRightPanelStore } from "~/rightPanelStore";
 import { COMPOSER_CONTEXT_KINDS } from "@t3tools/contracts";
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
-import { use, type ReactNode } from "react";
-import { FileDiff } from "@pierre/diffs/react";
-import { DiffWorkerPoolProvider } from "../DiffWorkerPoolProvider";
+import { lazy, Suspense, use, type ReactNode } from "react";
 import {
   type ChatFileAttachment,
   type ChatImageAttachment,
   isImageAttachment,
   isVideoAttachment,
 } from "../../types";
-import {
-  getRenderablePatch,
-  resolveDiffThemeName,
-  resolveFileDiffPath,
-} from "../../lib/diffRendering";
-import { PREFERRED_HIGHLIGHTER } from "../../lib/syntaxHighlighting";
+import { getRenderablePatch } from "../../lib/diffRendering";
 import ChatMarkdown from "../ChatMarkdown";
 import { EnvironmentContextChip } from "../EnvironmentContextChip";
 import { ThreadContextChip } from "../ThreadContextChip";
@@ -61,6 +53,9 @@ import {
 } from "../../reviewCommentContext";
 import { TimelineRowCtx } from "./timelineRowContext";
 import { userMessageFileLabel } from "./TimelineUserMessageRow.logic";
+
+// Review comment diffs are rare; the diff renderer stays out of the thread chunk until one shows.
+const ReviewCommentDiff = lazy(() => import("./ReviewCommentDiff"));
 
 function UserMessageMentionChip(props: {
   record: Extract<KnownComposerContextRecord, { kind: "mention" }>;
@@ -537,7 +532,6 @@ export function UserMessageContextReferenceChip(props: {
 }
 
 function UserMessageReviewCommentCard({ comment }: { comment: ReviewCommentContext }) {
-  const renderedAppearance = useRenderedAppearance();
   const ctx = use(TimelineRowCtx);
   const fenceLanguage = comment.fenceLanguage ?? "diff";
   const renderablePatch = getRenderablePatch(
@@ -577,20 +571,9 @@ function UserMessageReviewCommentCard({ comment }: { comment: ReviewCommentConte
         />
       )}
       {renderablePatch?.kind === "files" && (
-        <DiffWorkerPoolProvider>
-          {renderablePatch.files.map((fileDiff) => (
-            <FileDiff
-              key={resolveFileDiffPath(fileDiff)}
-              fileDiff={fileDiff}
-              options={{
-                collapsed: false,
-                diffStyle: "unified",
-                theme: resolveDiffThemeName(renderedAppearance),
-                preferredHighlighter: PREFERRED_HIGHLIGHTER,
-              }}
-            />
-          ))}
-        </DiffWorkerPoolProvider>
+        <Suspense fallback={null}>
+          <ReviewCommentDiff files={renderablePatch.files} />
+        </Suspense>
       )}
       {renderablePatch?.kind === "raw" && (
         <pre className="overflow-x-auto rounded-md bg-muted/40 p-2 text-xs">
