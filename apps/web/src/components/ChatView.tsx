@@ -127,6 +127,7 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import { AsyncResult } from "effect/reactivity";
 import { isElectron } from "../env";
+import { AgentOverview } from "./AgentOverview";
 import { ThreadSwitcherHost, WorkspaceSplitPanes } from "./WorkspaceSplits";
 import { useDiffPanelStore } from "../diffPanelStore";
 import { useActiveThreadRef } from "../hooks/useActiveThreadRef";
@@ -4020,6 +4021,7 @@ export default function ChatView(props: ChatViewProps) {
       ) : (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <ThreadSwitcherHost activeThreadRef={activeThreadRef} />
+          <AgentOverview />
           <WorkspaceSplitPanes
             mainRef={activeThreadRef}
             enabled={!rightPanelMaximized && !prefersPlanSidebarSheet}

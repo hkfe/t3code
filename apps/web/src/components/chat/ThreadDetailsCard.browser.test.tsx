@@ -20,8 +20,10 @@ const threadB: ScopedThreadRef = {
 const container = { width: 1200, height: 800 };
 const placement = { x: 908, y: 0, right: 12, width: 280, height: 400 } as const;
 
-function setup() {
+/** The inline card starts closed, so density tests open it first. */
+function setup({ inlineOpen = false }: { inlineOpen?: boolean } = {}) {
   useRightPanelStore.setState({ threadPanelVisibilityByThreadKey: {} });
+  if (inlineOpen) useRightPanelStore.getState().setThreadPanelOpen(threadB, "inline", true);
   const anchor = document.createElement("div");
   document.body.append(anchor);
   return {
@@ -167,7 +169,7 @@ it("reopens after a normal close", async () => {
 });
 
 it("returns to full density when hidden items make the content fit", async () => {
-  using fixture = setup();
+  using fixture = setup({ inlineOpen: true });
   await using screen = await render(<Card threadRef={threadB} inline fixture={fixture} rows={6} />);
   const card = page.getByRole("region", { name: "Thread details" });
   await expect.element(card).toHaveAttribute("data-density", "compact");
@@ -177,7 +179,7 @@ it("returns to full density when hidden items make the content fit", async () =>
 });
 
 it("keeps full density when many automations make the content tall", async () => {
-  using fixture = setup();
+  using fixture = setup({ inlineOpen: true });
   await using _screen = await render(
     <Card threadRef={threadB} inline fixture={fixture} rows={2} automationRows={6} />,
   );
@@ -188,7 +190,7 @@ it("keeps full density when many automations make the content tall", async () =>
 });
 
 it("stays full while expanded server rows overflow", async () => {
-  using fixture = setup();
+  using fixture = setup({ inlineOpen: true });
   await using _screen = await render(
     <Card threadRef={threadB} inline fixture={fixture} rows={2} serverOverflowRows={4} />,
   );
