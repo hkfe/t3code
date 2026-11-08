@@ -483,14 +483,101 @@ export interface PullRequestTimelineThread
   readonly replies: ReadonlyArray<PullRequestTimelineEvent>;
 }
 
-export type PullRequestTimelineRow =
+type PullRequestTimelineConversationRow =
   | { readonly kind: "event"; readonly event: PullRequestTimelineEvent }
   | { readonly kind: "comments"; readonly events: ReadonlyArray<PullRequestTimelineEvent> };
 
-export function groupPullRequestTimelineConversations(
+export type PullRequestTimelineRow =
+  | PullRequestTimelineConversationRow
+  | { readonly kind: "day"; readonly key: string; readonly at: string }
+  | { readonly kind: "sync"; readonly events: ReadonlyArray<PullRequestTimelineEvent> }
+  | {
+      readonly kind: "commits";
+      readonly key: string;
+      readonly events: ReadonlyArray<PullRequestTimelineEvent>;
+      readonly expanded: boolean;
+    };
+
+const SYNC_COMMIT_PATTERN = /^Merge (?:remote-tracking )?branch '([^']+)'(?: of \S+)? into /u;
+const COMMIT_RUN_COLLAPSE_LENGTH = 3;
+
+/** The branch a "Merge branch 'main' into ..." commit pulled in, or null for other commits. */
+export function pullRequestSyncCommitSource(event: PullRequestTimelineEvent): string | null {
+  return event.kind === "commit" ? (SYNC_COMMIT_PATTERN.exec(event.body ?? "")?.[1] ?? null) : null;
+}
+
+function localDayKey(at: string): string {
+  const date = new Date(at);
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+
+export function pullRequestTimelineDayLabel(at: string, now: Date = new Date()): string {
+  const date = new Date(at);
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (localDayKey(at) === localDayKey(now.toISOString())) return "Today";
+  if (localDayKey(at) === localDayKey(yesterday.toISOString())) return "Yesterday";
+  return date.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
+  });
+}
+
+/**
+ * Splits the ordered timeline into local days, folds runs of consecutive commits into one
+ * expandable row, and merges back-to-back identical "Merge branch" sync commits.
+ */
+export function buildPullRequestTimelineRows(
   events: ReadonlyArray<PullRequestTimelineEvent>,
+  expandedRuns: ReadonlySet<string>,
 ): ReadonlyArray<PullRequestTimelineRow> {
   const rows: PullRequestTimelineRow[] = [];
+  let day: string | null = null;
+  let run: PullRequestTimelineEvent[] = [];
+  const flushRun = () => {
+    const first = run[0];
+    if (first === undefined) return;
+    const key = `commits:${first.id}`;
+    const collapsible = run.length >= COMMIT_RUN_COLLAPSE_LENGTH;
+    const expanded = !collapsible || expandedRuns.has(key);
+    if (collapsible) rows.push({ kind: "commits", key, events: run, expanded });
+    if (expanded) {
+      for (const event of run) {
+        const last = rows.at(-1);
+        if (pullRequestSyncCommitSource(event) === null) rows.push({ kind: "event", event });
+        else if (last?.kind === "sync" && last.events[0]?.body === event.body) {
+          rows[rows.length - 1] = { kind: "sync", events: [...last.events, event] };
+        } else rows.push({ kind: "sync", events: [event] });
+      }
+    }
+    run = [];
+  };
+  for (const row of groupPullRequestTimelineConversations(events)) {
+    const first = row.kind === "comments" ? row.events[0] : row.event;
+    if (first === undefined) continue;
+    const key = localDayKey(first.at);
+    if (key !== day) {
+      flushRun();
+      day = key;
+      rows.push({ kind: "day", key, at: first.at });
+    }
+    if (row.kind === "event" && row.event.kind === "commit") {
+      run.push(row.event);
+      continue;
+    }
+    flushRun();
+    rows.push(row);
+  }
+  flushRun();
+  return rows;
+}
+
+export function groupPullRequestTimelineConversations(
+  events: ReadonlyArray<PullRequestTimelineEvent>,
+): ReadonlyArray<PullRequestTimelineConversationRow> {
+  const rows: PullRequestTimelineConversationRow[] = [];
   for (const event of events) {
     if (
       (event.kind === "comment" || event.kind === "review") &&

@@ -478,6 +478,26 @@ export function PullRequestActorLabel({
   );
 }
 
+/** Rounded pill that heads a section, such as a timeline day or a check group. */
+export function PullRequestSectionLabel({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "relative z-10 inline-flex h-5 items-center gap-1.5 rounded-full border border-border/60 bg-background px-2.5 text-3xs font-medium text-muted-foreground",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function PullRequestDiffStat({
   additions,
   deletions,
