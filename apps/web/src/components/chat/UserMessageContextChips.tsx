@@ -42,8 +42,10 @@ import {
   isPullRequestSummaryContext,
   pullRequestContextDisplayState,
   pullRequestContextKindLabel,
+  replyContextAuthor,
   reviewCommentContextLabel,
 } from "~/lib/composerContextRecords";
+import { scrollTimelineToMessage } from "./MessageReplyButton";
 import { formatComposerContextReference } from "@t3tools/shared/composerContextReferences";
 import { ContextChip, ContextChipLabel, type ContextChipKind } from "../ContextChip";
 import { createContextPresentationRegistry } from "../contextPresentationRegistry";
@@ -115,6 +117,28 @@ function UserMessageSkillChip(props: {
       copyMarkdown={props.copyMarkdown}
       onViewInstructions={skillInstructionsOpener(threadRef, skill)}
     />
+  );
+}
+
+function UserMessageReplyQuote(props: {
+  record: Extract<KnownComposerContextRecord, { kind: "reply" }>;
+  copyMarkdown: string;
+}) {
+  const { listRef } = use(TimelineRowCtx);
+  return (
+    <button
+      type="button"
+      data-markdown-copy={props.copyMarkdown}
+      className="mb-1 flex w-full min-w-0 cursor-pointer flex-col items-start gap-0.5 rounded-md border-s-2 border-border bg-muted/40 px-2 py-1 text-start text-xs hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+      onClick={() => scrollTimelineToMessage(listRef.current, props.record.messageId)}
+    >
+      <span className="font-medium text-muted-foreground">
+        Replying to {replyContextAuthor(props.record.role)}
+      </span>
+      <span className="line-clamp-2 whitespace-pre-wrap wrap-break-word text-muted-foreground">
+        {props.record.text}
+      </span>
+    </button>
   );
 }
 
@@ -319,6 +343,16 @@ const userMessageContextPresentationRegistry = createContextPresentationRegistry
       render: (record, context) =>
         record.kind === "thread" ? (
           <ThreadContextChip record={record} copyMarkdown={context.copyMarkdown} />
+        ) : (
+          <UnavailableUserMessageContextChip {...context} />
+        ),
+    },
+    {
+      kind: "reply",
+      canRender: (record) => record.kind === "reply",
+      render: (record, context) =>
+        record.kind === "reply" ? (
+          <UserMessageReplyQuote record={record} copyMarkdown={context.copyMarkdown} />
         ) : (
           <UnavailableUserMessageContextChip {...context} />
         ),
