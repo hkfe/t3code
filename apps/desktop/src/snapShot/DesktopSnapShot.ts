@@ -745,8 +745,6 @@ function probeGlobalShortcut(accelerator: string): DesktopSnapShotShortcutAvaila
 
 export const make = Effect.gen(function* () {
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
-  // macOS privacy settings list the bundle name, not the window display name.
-  const privacyAppName = `${environment.branding.baseName} (${environment.branding.stageLabel})`;
   const permissions = yield* MacPermissions.MacPermissions;
   const clientSettings = yield* DesktopClientSettings.DesktopClientSettings;
   const desktopWindow = yield* DesktopWindow.DesktopWindow;
@@ -1380,7 +1378,7 @@ export const make = Effect.gen(function* () {
                 reason: "setup-failed",
                 step: "find-window",
                 ...macCommandFailure(cause),
-                appName: privacyAppName,
+                appName: environment.displayName,
                 cause,
               }),
           });
@@ -1404,7 +1402,7 @@ export const make = Effect.gen(function* () {
                 reason: "setup-failed",
                 step: "capture-window",
                 ...macCommandFailure(cause),
-                appName: privacyAppName,
+                appName: environment.displayName,
                 cause,
               }),
           });
