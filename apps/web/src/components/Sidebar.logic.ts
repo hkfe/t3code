@@ -20,6 +20,7 @@ import type { EnvironmentConnectionPhase } from "@t3tools/client-runtime/connect
 import {
   isListedThreadLineage,
   type ContextMenuItem,
+  type OrchestrationV2WorkingPhase,
   type EnvironmentId,
   type ThreadId,
 } from "@t3tools/contracts";
@@ -172,7 +173,7 @@ export const animateSidebarLayoutChanges: AnimateLayoutChanges = (args) =>
 
 // Snoozed rows cannot accept drops without a wake time. Working rows only drag out as chat context.
 
-export type SidebarSection = "pinned" | "active" | "working" | "snoozed" | "settled";
+export type SidebarSection = "pinned" | "active" | "working" | "waiting" | "snoozed" | "settled";
 
 export function resolveSidebarThreadSection(input: {
   readonly snoozed: boolean;
@@ -193,19 +194,25 @@ export function isSidebarEnvironmentDisconnected(
   return phase !== "connecting" && (phase !== "connected" || !shellIsLive);
 }
 
-export function belongsInSidebarWorkingShelf<T extends { readonly environmentId: EnvironmentId }>(
+/** The bottom shelf a live thread folds into: Working for agent work, Waiting when parked. */
+export function resolveSidebarShelf<
+  T extends { readonly environmentId: EnvironmentId } & SidebarThreadStatusInput,
+>(
   thread: T,
   input: {
     readonly enabled: boolean;
     readonly disconnectedEnvironmentIds: ReadonlySet<EnvironmentId>;
     readonly isWorking: (thread: T) => boolean;
   },
-): boolean {
-  return (
-    input.enabled &&
-    !input.disconnectedEnvironmentIds.has(thread.environmentId) &&
-    input.isWorking(thread)
-  );
+): "working" | "waiting" | null {
+  if (
+    !input.enabled ||
+    input.disconnectedEnvironmentIds.has(thread.environmentId) ||
+    !input.isWorking(thread)
+  ) {
+    return null;
+  }
+  return resolveSidebarThreadStatus(thread) === "waiting" ? "waiting" : "working";
 }
 
 const SIDEBAR_MARKER_PREFIX = "sidebar-marker-";
@@ -216,6 +223,7 @@ export type SidebarListMarker =
   | "settled-placeholder"
   | "pinned-divider"
   | "working-header"
+  | "waiting-header"
   | "snoozed-header"
   | "settled-header";
 
@@ -238,6 +246,7 @@ function sectionAtSidebarSlot(items: readonly SidebarListItem[], index: number):
     if (item.kind !== "marker") continue;
     if (item.marker === "pinned-divider") section = "active";
     else if (item.marker === "working-header") section = "working";
+    else if (item.marker === "waiting-header") section = "waiting";
     else if (item.marker === "snoozed-header") section = "snoozed";
     else if (item.marker === "settled-header") section = "settled";
   }
@@ -261,7 +270,7 @@ export function resolveSidebarDropTarget(
   const moved = items.filter((_, index) => index !== activeIndex);
   moved.splice(overIndex, 0, items[activeIndex]!);
   const section = sectionAtSidebarSlot(moved, overIndex);
-  if (section === "working" || section === "snoozed") return null;
+  if (section === "working" || section === "waiting" || section === "snoozed") return null;
   const pinnedOrder: string[] = [];
   const activeOrder: string[] = [];
   let currentSection: SidebarSection = "pinned";
@@ -270,6 +279,7 @@ export function resolveSidebarDropTarget(
       if (item.marker === "pinned-divider") currentSection = "active";
       else if (
         item.marker === "working-header" ||
+        item.marker === "waiting-header" ||
         item.marker === "snoozed-header" ||
         item.marker === "settled-header"
       )
@@ -309,7 +319,9 @@ export function resolveSidebarDropVerb(
   from: SidebarSection,
   to: SidebarSection | null,
 ): SidebarDropVerb | null {
-  if (to === null || to === from || to === "working" || to === "snoozed") return null;
+  if (to === null || to === from || to === "working" || to === "waiting" || to === "snoozed") {
+    return null;
+  }
   if (to === "pinned") return "pin";
   if (to === "settled") return "settle";
   if (from === "pinned") return "unpin";
@@ -394,7 +406,7 @@ export function planSidebarThreadDrop(input: {
     activeKeysById,
     activeReorderableKeys,
   } = input;
-  if (activeSection === "working") return { kind: "none" };
+  if (activeSection === "working" || activeSection === "waiting") return { kind: "none" };
   if (input.supportsSettlement === false && (target.section === "settled" || activeSettled)) {
     return { kind: "none" };
   }
@@ -907,6 +919,47 @@ export function resolveSidebarThreadStatus(thread: SidebarThreadStatusInput): Si
   }
   return "ready";
 }
+
+/**
+ * The short reason a waiting thread shows: child threads it waits on, or the
+ * pull request it watches ("CI" while checks run). Null when nothing names it.
+ */
+export function resolveSidebarWaitingReason(
+  thread: Pick<
+    SidebarThreadSummary,
+    "runtime" | "blockedOnThreadWait" | "threadWaitCount" | "pendingBackgroundTasks"
+  > & {
+    readonly pullRequests: ReadonlyArray<{
+      readonly watch?: unknown;
+      readonly snapshot: { readonly checksState?: string | null | undefined } | null;
+    }>;
+  },
+): string | null {
+  const threads =
+    thread.runtime?.status === "running"
+      ? thread.blockedOnThreadWait === true
+        ? (thread.threadWaitCount ?? 0)
+        : 0
+      : thread.pendingBackgroundTasks.filter(
+          (task) => task.kind === "subagent" || task.kind === "background_task",
+        ).length;
+  if (threads > 0) return threads === 1 ? "1 thread" : `${threads} threads`;
+  if (thread.runtime?.status !== "idle") return null;
+  const watched = thread.pullRequests.filter((link) => link.watch !== undefined);
+  if (watched.some((link) => link.snapshot?.checksState === "pending")) return "CI";
+  return watched.length > 0 ? "PR" : null;
+}
+
+export const WORKING_PHASE_PRESENTATION: Record<
+  OrchestrationV2WorkingPhase,
+  { readonly label: string; readonly className: string }
+> = {
+  reading: { label: "Reading", className: "text-info-foreground" },
+  editing: { label: "Editing", className: "text-violet-600 dark:text-violet-300" },
+  testing: { label: "Testing", className: "text-teal-600 dark:text-teal-300" },
+  reviewing: { label: "Reviewing", className: "text-pink-600 dark:text-pink-300" },
+  measuring: { label: "Measuring", className: "text-orange-600 dark:text-orange-300" },
+};
 
 /**
  * The dot on a closed boring-sidebar folder: the most urgent state among its

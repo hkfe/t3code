@@ -53,12 +53,13 @@ export function turnItemUpdateCanEndBackgroundWork(
   return BACKGROUND_TURN_ITEM_TYPES.has(item.type) && !isOrchestrationV2WorkActive(item.status);
 }
 
-export function deriveBlockedOnThreadWait(input: {
+/** Threads the active run is blocked waiting on; 0 while it does other work. */
+export function deriveThreadWaitCount(input: {
   readonly activeRun: Pick<OrchestrationV2Run, "id" | "status"> | null;
   readonly turnItems: ReadonlyArray<OrchestrationV2TurnItem>;
-}): boolean {
-  if (input.activeRun?.status !== "running") return false;
-  let hasWait = false;
+}): number {
+  if (input.activeRun?.status !== "running") return 0;
+  let waits = 0;
   for (const item of input.turnItems) {
     if (
       item.runId !== input.activeRun.id ||
@@ -69,7 +70,7 @@ export function deriveBlockedOnThreadWait(input: {
     ) {
       continue;
     }
-    if (item.type !== "dynamic_tool") return false;
+    if (item.type !== "dynamic_tool") return 0;
     const tool = resolveT3McpToolId(item.toolName);
     if (
       tool !== "t3_thread_wait" &&
@@ -79,11 +80,11 @@ export function deriveBlockedOnThreadWait(input: {
         Reflect.get(item.input, "mode") === "wait"
       )
     ) {
-      return false;
+      return 0;
     }
-    hasWait = true;
+    waits += 1;
   }
-  return hasWait;
+  return waits;
 }
 
 export function backgroundWorkHoldsCompletion(

@@ -19,7 +19,7 @@ import { formatRelativeTimeLabel } from "../timestampFormat";
 import ChatView from "./ChatView";
 import { BackgroundThreadContext } from "./chat/backgroundThread";
 import { ProjectFavicon } from "./ProjectFavicon";
-import { resolveSidebarThreadStatus } from "./Sidebar.logic";
+import { resolveSidebarThreadStatus, WORKING_PHASE_PRESENTATION } from "./Sidebar.logic";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 
@@ -88,7 +88,13 @@ function describeThread(
       : status === "failed"
         ? { className: "bg-destructive", tone: "text-destructive", text: "Failed" }
         : status === "working"
-          ? { className: "bg-primary", tone: "text-primary", text: "Working" }
+          ? {
+              className: "bg-primary",
+              tone: "text-primary",
+              text: shell.workingPhase
+                ? WORKING_PHASE_PRESENTATION[shell.workingPhase].label
+                : "Working",
+            }
           : null;
   return [
     {

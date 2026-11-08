@@ -2069,6 +2069,16 @@ export const OrchestrationV2LatestVisibleMessageSummary = Schema.Struct({
 export type OrchestrationV2LatestVisibleMessageSummary =
   typeof OrchestrationV2LatestVisibleMessageSummary.Type;
 
+/** What the agent is doing now, from its most recent tool call. */
+export const OrchestrationV2WorkingPhase = Schema.Literals([
+  "reading",
+  "editing",
+  "testing",
+  "reviewing",
+  "measuring",
+]);
+export type OrchestrationV2WorkingPhase = typeof OrchestrationV2WorkingPhase.Type;
+
 export const OrchestrationV2ThreadShell = Schema.Struct({
   ...OrchestrationV2CreationFields,
   id: ThreadId,
@@ -2100,6 +2110,9 @@ export const OrchestrationV2ThreadShell = Schema.Struct({
     Schema.NullOr(Schema.Literals(["preparing", "starting", "running", "waiting"])),
   ),
   blockedOnThreadWait: Schema.optional(Schema.Boolean),
+  /** Threads the run blocks on while blockedOnThreadWait. Absent from older servers. */
+  threadWaitCount: Schema.optional(NonNegativeInt),
+  workingPhase: Schema.optional(Schema.NullOr(OrchestrationV2WorkingPhase)),
   status: OrchestrationV2ShellThreadStatus,
   lastError: Schema.optional(Schema.NullOr(Schema.String)),
   lastErrorClass: Schema.optional(Schema.NullOr(OrchestrationV2ProviderFailureClass)),

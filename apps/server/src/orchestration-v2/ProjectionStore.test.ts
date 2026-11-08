@@ -728,6 +728,19 @@ it.effect("SQL shells flag only an active turn blocked solely on T3 thread waits
       }
       yield* assertShellIndexCoversShells();
     });
+    const assertShellWork = Effect.fnUntraced(function* (expected: {
+      readonly threadWaitCount: number;
+      readonly workingPhase: string | null;
+    }) {
+      const listed = (yield* store.getShellSnapshot()).threads.find((row) => row.id === threadId);
+      const memory = ProjectionStore.threadShellFromProjection(
+        yield* store.getThreadProjection(threadId),
+      );
+      for (const shell of [yield* store.getThreadShell(threadId), listed, memory]) {
+        assert.equal(shell?.threadWaitCount, expected.threadWaitCount);
+        assert.equal(shell?.workingPhase, expected.workingPhase);
+      }
+    });
     const wait = {
       ...itemBase,
       id: TurnItemId.make("item:thread-wait:active"),
@@ -854,8 +867,29 @@ it.effect("SQL shells flag only an active turn blocked solely on T3 thread waits
     });
     yield* updateItem(blockingDelegation);
     yield* assertBlocked(true);
+    const secondWait = { ...wait, id: TurnItemId.make("item:thread-wait:second") };
+    yield* updateItem(secondWait);
+    yield* assertShellWork({ threadWaitCount: 2, workingPhase: null });
+    yield* updateItem({ ...secondWait, status: "completed", completedAt: at });
     yield* updateItem({ ...blockingDelegation, status: "completed", completedAt: at });
     yield* assertBlocked(false);
+
+    // The phase follows the run's latest tool item, kept after the item completes.
+    yield* updateItem({
+      ...fileChange,
+      id: TurnItemId.make("item:thread-wait:phase-edit"),
+      ordinal: itemBase.ordinal + 100,
+      status: "completed",
+      completedAt: at,
+    });
+    yield* assertShellWork({ threadWaitCount: 0, workingPhase: "editing" });
+    yield* updateItem({
+      ...command,
+      id: TurnItemId.make("item:thread-wait:phase-test"),
+      ordinal: itemBase.ordinal + 101,
+      input: "vp test run src/a.test.ts",
+    });
+    yield* assertShellWork({ threadWaitCount: 0, workingPhase: "testing" });
   }).pipe(Effect.provide(layerTest)),
 );
 
