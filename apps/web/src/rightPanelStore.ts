@@ -336,7 +336,11 @@ const updateThreadPanelVisibilityMap = (
 ): Record<string, ThreadPanelVisibility> => {
   const current = byThreadKey[threadKey] ?? DEFAULT_THREAD_PANEL_VISIBILITY;
   const next = updater(current);
-  if (next.inlineOpen && !next.popoverOpen) {
+  // Entries equal to the default are dropped, so the map holds only overrides.
+  if (
+    next.inlineOpen === DEFAULT_THREAD_PANEL_VISIBILITY.inlineOpen &&
+    next.popoverOpen === DEFAULT_THREAD_PANEL_VISIBILITY.popoverOpen
+  ) {
     if (!(threadKey in byThreadKey)) return byThreadKey;
     const { [threadKey]: _removed, ...rest } = byThreadKey;
     return rest;
