@@ -1834,6 +1834,7 @@ export function PullRequestDetailPanel({
                     reference={reference}
                     order={timelineOrder}
                     onOpenCommit={openCommit}
+                    onShowChecks={() => selectTab("checks")}
                     onRefresh={refreshDetail}
                   />
                 )}

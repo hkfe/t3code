@@ -24,7 +24,14 @@ import {
   pullRequestFindingKey,
   type PullRequestFinding,
 } from "./pullRequestDetail.logic";
-import { PullRequestCheckStatusIcon, pullRequestCheckStatusLabel } from "./pullRequestPresentation";
+import {
+  PullRequestCheckStatusIcon,
+  PullRequestSectionLabel,
+  pullRequestCheckStatusLabel,
+  pullRequestChecksState,
+  pullRequestChecksStatePresentation,
+  summarizePullRequestChecks,
+} from "./pullRequestPresentation";
 
 export function PullRequestChecksTabBadge({ checks }: { checks: ReadonlyArray<PullRequestCheck> }) {
   const { attention, running } = groupPullRequestChecks(checks);
@@ -72,42 +79,65 @@ export function PullRequestChecksTab({
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const { attention, running, completed } = groupPullRequestChecks(checks);
-  const ordered = [...attention, ...running, ...completed];
+  const sections = [
+    { label: "Needs attention", checks: attention },
+    { label: "Running", checks: running },
+    { label: "Completed", checks: completed },
+  ].filter((section) => section.checks.length > 0);
+  const state = pullRequestChecksState(checks);
+  const presentation = state === null ? null : pullRequestChecksStatePresentation(state);
   return (
-    <div ref={scrollerRef} className="h-full overflow-y-auto px-4 py-3">
-      {stale ? (
-        <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Check details are out of date.</span>
-          <Button size="xs" variant="ghost" onClick={onRefreshChecks}>
-            Refresh
-          </Button>
+    <div ref={scrollerRef} className="scrollbar-gutter-both h-full overflow-y-auto px-4 py-5">
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="mb-5 flex items-center gap-2.5 px-1">
+          {presentation ? (
+            <presentation.Icon
+              aria-hidden
+              className={cn("size-4 shrink-0", presentation.toneClassName)}
+            />
+          ) : null}
+          <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
+            {summarizePullRequestChecks(checks)}
+          </span>
+          {stale ? (
+            <>
+              <span className="text-2xs text-muted-foreground">Out of date</span>
+              <Button size="xs" variant="ghost" onClick={onRefreshChecks}>
+                Refresh
+              </Button>
+            </>
+          ) : null}
         </div>
-      ) : null}
-      {ordered.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No checks reported.</p>
-      ) : (
-        <ul className="space-y-0.5">
-          {ordered.map((check, index) => {
-            // Check names and URLs can repeat across workflows.
-            const key = `${index}:${check.name}:${check.url ?? ""}`;
-            return (
-              <CheckRow
-                key={key}
-                environmentId={environmentId}
-                reference={reference}
-                threadRef={threadRef}
-                check={check}
-                expanded={expanded === key}
-                onToggle={() => setExpanded(expanded === key ? null : key)}
-                openLabel={openLabel}
-                pendingFinding={pendingFinding}
-                fixCheckLabel={fixCheckLabel}
-                {...(onFixFinding ? { onFixFinding } : {})}
-              />
-            );
-          })}
-        </ul>
-      )}
+        {sections.map((section) => (
+          <section key={section.label} className="mb-5">
+            <PullRequestSectionLabel className="mb-2">
+              {section.label}
+              <span className="tabular-nums text-muted-foreground/70">{section.checks.length}</span>
+            </PullRequestSectionLabel>
+            <ul className="divide-y divide-border/40 overflow-hidden rounded-lg border border-border/60 bg-card">
+              {section.checks.map((check, index) => {
+                // Check names and URLs can repeat across workflows.
+                const key = `${section.label}:${index}:${check.name}:${check.url ?? ""}`;
+                return (
+                  <CheckRow
+                    key={key}
+                    environmentId={environmentId}
+                    reference={reference}
+                    threadRef={threadRef}
+                    check={check}
+                    expanded={expanded === key}
+                    onToggle={() => setExpanded(expanded === key ? null : key)}
+                    openLabel={openLabel}
+                    pendingFinding={pendingFinding}
+                    fixCheckLabel={fixCheckLabel}
+                    {...(onFixFinding ? { onFixFinding } : {})}
+                  />
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }
@@ -157,13 +187,13 @@ function CheckRow({
   const log = logQuery.data;
 
   return (
-    <li className="rounded-md">
-      <div className="group flex items-center gap-1 rounded-md pr-1 hover:bg-accent/60">
+    <li>
+      <div className="group flex items-center gap-1 pr-1.5 hover:bg-accent/60">
         <button
           type="button"
           aria-expanded={expanded}
           onClick={onToggle}
-          className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-left text-xs leading-5 [&>svg]:mt-0.5"
+          className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 px-3 py-2.5 text-left text-xs leading-5 [&>svg]:mt-0.5"
         >
           <ChevronRightIcon
             aria-hidden
@@ -213,7 +243,7 @@ function CheckRow({
         ) : null}
       </div>
       {expanded ? (
-        <div className="mt-1 mb-2 ml-7 text-xs">
+        <div className="mb-3 ml-9 mr-3 text-xs">
           {!check.url ? (
             <p className="text-muted-foreground">The host reported no log for this check.</p>
           ) : logQuery.error ? (

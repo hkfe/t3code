@@ -5,6 +5,7 @@ import {
   type PullRequestDetailView,
 } from "@t3tools/contracts";
 import { expect, it } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 
 import { render } from "../../../test/render";
 import "../../index.css";
@@ -68,7 +69,7 @@ const detail: PullRequestDetailView = {
   },
 };
 
-it("mounts only the timeline rows near the viewport of a huge pull request", async () => {
+it("folds a commit run and, once expanded, mounts only the rows near the viewport", async () => {
   await using screen = await render(
     <div style={{ height: 600 }}>
       <PullRequestTimelineTab
@@ -78,10 +79,12 @@ it("mounts only the timeline rows near the viewport of a huge pull request", asy
         reference={detail}
         order="oldest"
         onOpenCommit={() => {}}
+        onShowChecks={() => {}}
         onRefresh={() => {}}
       />
     </div>,
   );
+  await userEvent.click(screen.getByRole("button", { name: /commits/ }).first());
   await expect.element(screen.getByText("Commit number 0")).toBeVisible();
   const mounted = screen.container.querySelectorAll("button").length;
   expect(mounted).toBeGreaterThan(0);

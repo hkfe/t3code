@@ -27,7 +27,9 @@ import {
   pullRequestCheckDuration,
   canDeletePullRequestBranch,
   buildFixFindingsHandoff,
+  buildPullRequestTimelineRows,
   groupPullRequestTimelineConversations,
+  pullRequestTimelineDayLabel,
   filterPullRequestConversationItems,
   pagePullRequestConversationItems,
   pullRequestConversationItemComments,
@@ -454,6 +456,54 @@ describe("pull request timeline", () => {
       ["event", "1baf7bdcafe"],
       ["event", "created"],
     ]);
+  });
+  it("splits days, folds commit runs, and merges repeated sync commits", () => {
+    const commit = (oid: string, messageHeadline: string, committedDate: string) => ({
+      oid,
+      messageHeadline,
+      committedDate,
+    });
+    const sync = "Merge remote-tracking branch 'fork/main' into feature";
+    const events = buildPullRequestTimeline({
+      ...TIMELINE_SOURCE,
+      createdAt: "2026-07-01T12:00:00Z",
+      comments: [],
+      commits: [
+        commit("a", "first", "2026-07-01T12:10:00Z"),
+        commit("b", "second", "2026-07-01T12:20:00Z"),
+        commit("c", "third", "2026-07-01T12:30:00Z"),
+        commit("d", sync, "2026-07-03T12:00:00Z"),
+        commit("e", sync, "2026-07-03T12:05:00Z"),
+      ],
+    }).toReversed();
+    const shape = (expanded: ReadonlySet<string>) =>
+      buildPullRequestTimelineRows(events, expanded).map((row) =>
+        row.kind === "day"
+          ? "day"
+          : row.kind === "event"
+            ? row.event.id
+            : `${row.kind}:${row.events.map((event) => event.id).join("")}`,
+      );
+
+    expect(shape(new Set())).toEqual(["day", "created", "commits:abc", "day", "sync:de"]);
+    expect(shape(new Set(["commits:a"]))).toEqual([
+      "day",
+      "created",
+      "commits:abc",
+      "a",
+      "b",
+      "c",
+      "day",
+      "sync:de",
+    ]);
+  });
+
+  it("names nearby days relative to now", () => {
+    const now = new Date(2026, 6, 10, 12);
+    expect(pullRequestTimelineDayLabel(new Date(2026, 6, 10, 1).toISOString(), now)).toBe("Today");
+    expect(pullRequestTimelineDayLabel(new Date(2026, 6, 9, 23).toISOString(), now)).toBe(
+      "Yesterday",
+    );
   });
 });
 
