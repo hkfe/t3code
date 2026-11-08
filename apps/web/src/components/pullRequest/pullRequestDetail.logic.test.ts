@@ -18,6 +18,7 @@ import { formatInlineContextReference } from "~/lib/composerContextReferences";
 import { buildMessageContext, reviewCommentContextReference } from "~/lib/composerContextRecords";
 
 import {
+  describePullRequestChecks,
   buildAddSelectionToAgentHandoff,
   buildExplainPullRequestHandoff,
   buildResolveConflictsPrompt,
@@ -1604,5 +1605,21 @@ describe("readableFailure", () => {
     expect(readableFailure(new Error("Branch is protected."), "Try again.")).toBe(
       "Branch is protected.",
     );
+  });
+});
+
+describe("describePullRequestChecks", () => {
+  const check = (status: PullRequestCheck["status"]): PullRequestCheck => ({
+    name: `check-${status}`,
+    status,
+    description: null,
+    url: null,
+  });
+
+  it("names skipped checks instead of reading them as not passing", () => {
+    expect(describePullRequestChecks([check("success"), check("skipped"), check("neutral")])).toBe(
+      "1 passed · 2 skipped",
+    );
+    expect(describePullRequestChecks([check("success")])).toBe("All checks passed");
   });
 });

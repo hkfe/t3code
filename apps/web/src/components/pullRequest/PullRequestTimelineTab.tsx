@@ -129,6 +129,13 @@ const MARKER_TONE = {
 } as const;
 type MarkerTone = keyof typeof MARKER_TONE;
 
+// Each row draws its own slice of the connector, so the line stops at the last marker.
+function markerSitsAtTop(row: PullRequestTimelineRow): boolean {
+  if (row.kind === "comments") return true;
+  if (row.kind === "day" || row.kind === "sync" || row.kind === "commits") return false;
+  return row.event.thread !== undefined || pullRequestReviewOutcome(row.event.reviewState) !== null;
+}
+
 function TimelineMarker({
   children,
   tone,
@@ -694,7 +701,10 @@ function ChecksSummary({
           {[
             attention.length > 0 ? `${attention.length} need attention` : null,
             running.length > 0 ? `${running.length} running` : null,
-            completed.length > 0 ? `${completed.length} done` : null,
+            // "N done" only adds information next to running or failing checks.
+            completed.length > 0 && attention.length + running.length > 0
+              ? `${completed.length} done`
+              : null,
           ]
             .filter(Boolean)
             .join(" · ")}
@@ -934,14 +944,30 @@ export function PullRequestTimelineTab({
       data={rows}
       extraData={{ editable, reactions, newestCommitAt, expandedRuns }}
       keyExtractor={rowKey}
-      renderItem={renderRow}
+      renderItem={(info) => (
+        <div
+          className={cn(
+            "relative before:absolute before:left-[15px] before:top-0 before:w-px before:bg-border/60",
+            info.index === 0 && detail.checks.length === 0 && "before:top-1/2",
+            info.index < rows.length - 1
+              ? "before:bottom-0"
+              : markerSitsAtTop(info.item)
+                ? "before:h-6"
+                : "before:h-1/2",
+          )}
+        >
+          {renderRow(info)}
+        </div>
+      )}
       estimatedItemSize={56}
       className="scrollbar-gutter-both h-full px-4"
-      contentContainerClassName="relative mx-auto w-full max-w-3xl before:absolute before:bottom-10 before:left-[15px] before:top-6 before:w-px before:bg-border/60"
+      contentContainerClassName="mx-auto w-full max-w-3xl"
       ListHeaderComponent={
         <div className="pt-5">
           {detail.checks.length > 0 ? (
-            <ChecksSummary checks={detail.checks} onShowChecks={onShowChecks} />
+            <div className="relative flow-root before:absolute before:bottom-0 before:left-[15px] before:top-1/2 before:w-px before:bg-border/60">
+              <ChecksSummary checks={detail.checks} onShowChecks={onShowChecks} />
+            </div>
           ) : null}
         </div>
       }
