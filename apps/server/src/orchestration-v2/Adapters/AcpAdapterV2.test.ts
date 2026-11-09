@@ -32,7 +32,7 @@ import {
 } from "@t3tools/contracts";
 import { GrokSettings } from "@t3tools/provider-grok/settings";
 import * as HostProcess from "@t3tools/shared/HostProcess";
-import { deriveBlockedOnThreadWait } from "@t3tools/shared/orchestrationV2PendingBackgroundWork";
+import { deriveThreadWaitCount } from "@t3tools/shared/orchestrationV2PendingBackgroundWork";
 import { resolveSelfInvocation } from "@t3tools/shared/nodeRuntime";
 import * as DateTime from "effect/DateTime";
 import * as Deferred from "effect/Deferred";
@@ -2356,10 +2356,10 @@ describe("AcpAdapterV2", () => {
             ],
           );
           states.push(
-            deriveBlockedOnThreadWait({
+            deriveThreadWaitCount({
               activeRun: { id: input.runId, status: "running" },
               turnItems: [...retained.values()],
-            }),
+            }) > 0,
           );
         }
         assert.deepEqual(states, [true, false, true, false]);

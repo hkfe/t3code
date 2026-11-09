@@ -32,16 +32,21 @@ import {
   AlarmClockIcon,
   AlarmClockOffIcon,
   ArrowRightLeftIcon,
+  BookOpenIcon,
   CheckIcon,
   CircleAlertIcon,
   CircleCheckIcon,
   CircleDashedIcon,
   CircleDotDashedIcon,
   ClockIcon,
+  FlaskConicalIcon,
+  GaugeIcon,
   GitBranchIcon,
   MessageCircleQuestionIcon,
+  PencilLineIcon,
   PinIcon,
   PinOffIcon,
+  ScanEyeIcon,
   ShieldQuestionIcon,
   SquarePenIcon,
   TerminalIcon,
@@ -80,12 +85,14 @@ import {
   resolveSidebarRowAccessibility,
   type SidebarDropVerb,
   resolveSidebarThreadStatus,
+  resolveSidebarWaitingReason,
   resolveThreadLastVisitedAt,
   shouldRecedeSidebarThread,
   resolveWorkingStartedAt,
   useRetainedValue,
   useSidebarRowSubscriptionLease,
   setFileDragActive,
+  WORKING_PHASE_PRESENTATION,
 } from "../Sidebar.logic";
 import { resolveLocalCheckoutBranchMismatch } from "../BranchToolbar.logic";
 import {
@@ -525,6 +532,11 @@ const TOP_STATUS_ICONS = {
   failed: CircleAlertIcon,
   done: CircleCheckIcon,
   woke: AlarmClockIcon,
+  reading: BookOpenIcon,
+  editing: PencilLineIcon,
+  testing: FlaskConicalIcon,
+  reviewing: ScanEyeIcon,
+  measuring: GaugeIcon,
 } as const;
 
 function TopStatusIcon(props: { icon: keyof typeof TOP_STATUS_ICONS; className: string }) {
@@ -721,16 +733,19 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
     isActive: props.isActive,
     isSelected,
   });
+  const phase = thread.goal?.status === "active" ? null : (thread.workingPhase ?? null);
   const topStatus =
     status === "working"
-      ? {
-          label: thread.goal?.status === "active" ? "Goal" : "Working",
-          icon: "working" as const,
-          className: "text-info-foreground",
-        }
+      ? phase !== null
+        ? { ...WORKING_PHASE_PRESENTATION[phase], icon: phase }
+        : {
+            label: thread.goal?.status === "active" ? "Goal" : "Working",
+            icon: "working" as const,
+            className: "text-info-foreground",
+          }
       : status === "waiting"
         ? {
-            label: "Waiting",
+            label: resolveSidebarWaitingReason(thread) ?? "Waiting",
             icon: "waiting" as const,
             className: "text-muted-foreground",
           }

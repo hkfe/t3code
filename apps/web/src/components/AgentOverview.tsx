@@ -10,7 +10,11 @@ import { useProjects, useQuietThreadShells } from "../state/entities";
 import { buildThreadRouteParams } from "../threadRoutes";
 import { formatElapsedDurationLabel, formatRelativeTimeLabel } from "../timestampFormat";
 import { ProjectFavicon } from "./ProjectFavicon";
-import { resolveSidebarThreadStatus, resolveWorkingStartedAt } from "./Sidebar.logic";
+import {
+  resolveSidebarThreadStatus,
+  resolveWorkingStartedAt,
+  WORKING_PHASE_PRESENTATION,
+} from "./Sidebar.logic";
 import { SwitcherPreview } from "./WorkspaceSplits";
 
 const COLUMNS = 4;
@@ -246,7 +250,7 @@ export function AgentOverview() {
                       {section.group === "needs"
                         ? NEEDS_LABEL[status]
                         : section.group === "working"
-                          ? `Working${startedAt ? ` · ${formatElapsedDurationLabel(startedAt, now)}` : ""}`
+                          ? `${shell.workingPhase ? WORKING_PHASE_PRESENTATION[shell.workingPhase].label : "Working"}${startedAt ? ` · ${formatElapsedDurationLabel(startedAt, now)}` : ""}`
                           : `Idle · ${formatRelativeTimeLabel(shell.latestUserMessageAt ?? shell.updatedAt, now)}`}
                     </span>
                   </button>

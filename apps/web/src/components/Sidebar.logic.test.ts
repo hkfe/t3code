@@ -11,7 +11,8 @@ import {
   getFallbackThreadIdAfterDelete,
   hasUnseenCompletion,
   resolveSidebarRowThreadId,
-  belongsInSidebarWorkingShelf,
+  resolveSidebarShelf,
+  resolveSidebarWaitingReason,
   isSidebarEnvironmentDisconnected,
   orderItemsByPreferredIds,
   pinOrderKeyBetween,
@@ -951,6 +952,10 @@ describe("unseen completion with background work", () => {
   });
 });
 
+function watchedPullRequest(checksState: "pending" | "passing") {
+  return { watch: {}, snapshot: { checksState } };
+}
+
 describe("Working shelf (beta)", () => {
   const runtime = {
     status: "running" as const,
@@ -1023,17 +1028,79 @@ describe("Working shelf (beta)", () => {
   it("lists a running thread outside the shelf while its environment is disconnected", () => {
     const thread = { ...idle, runtime, environmentId: localEnvironmentId };
     const shelve = (disconnected: ReadonlyArray<EnvironmentId>, enabled = true) =>
-      belongsInSidebarWorkingShelf(thread, {
+      resolveSidebarShelf(thread, {
         enabled,
         disconnectedEnvironmentIds: new Set(disconnected),
         isWorking: isSidebarThreadWorking,
       });
 
-    expect(shelve([])).toBe(true);
-    expect(shelve([localEnvironmentId])).toBe(false);
-    expect(shelve([])).toBe(true);
-    expect(shelve([EnvironmentId.make("environment-other")])).toBe(true);
-    expect(shelve([], false)).toBe(false);
+    expect(shelve([])).toBe("working");
+    expect(shelve([localEnvironmentId])).toBe(null);
+    expect(shelve([])).toBe("working");
+    expect(shelve([EnvironmentId.make("environment-other")])).toBe("working");
+    expect(shelve([], false)).toBe(null);
+  });
+
+  it.each([
+    { name: "a running run", thread: { ...idle, runtime }, shelf: "working", reason: null },
+    {
+      name: "a run blocked on two threads",
+      thread: { ...idle, runtime, blockedOnThreadWait: true, threadWaitCount: 2 },
+      shelf: "waiting",
+      reason: "2 threads",
+    },
+    {
+      name: "a run that waits on a thread beside other work",
+      thread: { ...idle, runtime, blockedOnThreadWait: false, threadWaitCount: 0 },
+      shelf: "working",
+      reason: null,
+    },
+    {
+      name: "a finished run with a delegated task left",
+      thread: {
+        ...waiting,
+        pendingBackgroundTasks: [{ taskId: "child", kind: "subagent" as const }],
+      },
+      shelf: "waiting",
+      reason: "1 thread",
+    },
+    {
+      name: "a finished run with a background workflow left",
+      thread: {
+        ...waiting,
+        pendingBackgroundTasks: [{ taskId: "workflow", kind: "background_task" as const }],
+      },
+      shelf: "waiting",
+      reason: null,
+    },
+    {
+      name: "a pull request watch with pending checks",
+      thread: { ...waiting, pullRequests: [watchedPullRequest("pending")] },
+      shelf: "waiting",
+      reason: "CI",
+    },
+    {
+      name: "a pull request watch with checks done",
+      thread: { ...waiting, pullRequests: [watchedPullRequest("passing")] },
+      shelf: "waiting",
+      reason: "PR",
+    },
+    { name: "an awaited monitor", thread: waiting, shelf: "waiting", reason: null },
+  ] as const)("shelves $name as $shelf ($reason)", ({ thread, shelf, reason }) => {
+    const shell = {
+      pendingBackgroundTasks: [],
+      pullRequests: [],
+      ...thread,
+      environmentId: localEnvironmentId,
+    };
+    expect(
+      resolveSidebarShelf(shell, {
+        enabled: true,
+        disconnectedEnvironmentIds: new Set(),
+        isWorking: isSidebarThreadWorking,
+      }),
+    ).toBe(shelf);
+    expect(resolveSidebarWaitingReason(shell)).toBe(reason);
   });
 
   describe("sortInboxThreadsByReturn", () => {
