@@ -37,6 +37,7 @@ export const layer = Layer.effect(
         subscribe: serverSettings.subscribeChanges,
       },
       shouldRunBackgroundWork: backgroundPolicy.shouldRunScopeWork,
+      awaitProviderStatusDemand: backgroundPolicy.awaitProviderStatusDemand,
       resolveAttachmentPath: (attachment) =>
         resolveAttachmentPath({ attachmentsDir: config.attachmentsDir, attachment }),
       // DocumentText owns the path-resolution span.

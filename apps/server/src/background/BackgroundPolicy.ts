@@ -14,6 +14,7 @@ import {
 } from "@t3tools/shared/backgroundActivitySettings";
 import * as DateTime from "effect/DateTime";
 import * as Context from "effect/Context";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Ref from "effect/Ref";
@@ -36,6 +37,8 @@ export class BackgroundPolicy extends Context.Service<
     readonly snapshot: Effect.Effect<BackgroundPolicySnapshot>;
     readonly shouldRunScopeWork: (scope: BackgroundScope) => Effect.Effect<boolean>;
     readonly shouldRunOpportunisticWork: Effect.Effect<boolean>;
+    /** Completes once any client reports the provider-status scope, regardless of power policy. */
+    readonly awaitProviderStatusDemand: Effect.Effect<void>;
   }
 >()("t3/background/BackgroundPolicy") {}
 
@@ -196,6 +199,7 @@ export const make = Effect.fn("background.policy.make")(function* () {
   const hostPowerMonitor = yield* HostPowerMonitor.HostPowerMonitor;
   const serverSettings = yield* ServerSettings.ServerSettingsService;
   const leasesRef = yield* Ref.make(new Map<string, ClientActivityLease>());
+  const providerStatusDemand = yield* Deferred.make<void>();
 
   const backgroundActivitySettings = serverSettings.getSettings.pipe(
     Effect.map(resolveServerBackgroundActivitySettings),
@@ -233,6 +237,9 @@ export const make = Effect.fn("background.policy.make")(function* () {
       expiresAt,
     };
     yield* Ref.update(leasesRef, (leases) => upsertClientActivityLease(leases, lease, now));
+    if (input.scopes.some((scope) => scope.type === "provider-status")) {
+      yield* Deferred.succeed(providerStatusDemand, undefined);
+    }
   });
 
   const removeRpcClient: BackgroundPolicy["Service"]["removeRpcClient"] = (
@@ -291,6 +298,7 @@ export const make = Effect.fn("background.policy.make")(function* () {
     snapshot,
     shouldRunScopeWork,
     shouldRunOpportunisticWork,
+    awaitProviderStatusDemand: Deferred.await(providerStatusDemand),
   });
 });
 

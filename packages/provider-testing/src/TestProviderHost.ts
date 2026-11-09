@@ -59,6 +59,7 @@ export const layer = (
         shouldRunBackgroundWork: Effect.fn("ProviderHost.shouldRunBackgroundWork")(function () {
           return Effect.succeed(options.runBackgroundWork ?? true);
         }),
+        awaitProviderStatusDemand: Effect.void,
         resolveAttachmentPath: (attachment) => path.join(attachmentsDir, attachment.id),
         credentials: Effect.fn("ProviderHost.credentials")(function (namespace, bindingId) {
           return Effect.sync(() => {

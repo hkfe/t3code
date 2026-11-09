@@ -35,15 +35,10 @@ import {
   type CanUseTool,
   type ElicitationRequest,
   type ElicitationResult,
-  forkSession as forkClaudeSession,
   type EffortLevel,
   type ForkSessionOptions,
   type ForkSessionResult,
-  getSessionMessages,
-  getSubagentMessages,
   type HookCallback,
-  query,
-  resolveSettings as resolveClaudeSettings,
   type Options as ClaudeQueryOptions,
   type PermissionMode,
   type PermissionResult,
@@ -221,6 +216,8 @@ import {
 
 export const CLAUDE_PROVIDER = ProviderDriverKind.make("claudeAgent");
 const CLAUDE_AGENT_SDK_QUERY_PROTOCOL = "claude-agent-sdk.query" as const;
+// The SDK bundle costs ~100 ms to evaluate; load it on first Claude use, not at server start.
+const loadClaudeSdk = () => import("@anthropic-ai/claude-agent-sdk");
 
 interface ClaudeCacheCreation {
   readonly ephemeral_1h_input_tokens: number;
@@ -1078,6 +1075,7 @@ export const layerQueryRunner: Layer.Layer<
             });
             return child;
           };
+          const { query } = yield* Effect.promise(loadClaudeSdk);
           const queryRuntime = yield* Effect.uninterruptibleMask((restore) =>
             Effect.try({
               try: () =>
@@ -1356,7 +1354,9 @@ export const layerQueryRunner: Layer.Layer<
           ForkSessionResult & { readonly headMessageId?: string },
           unknown
         > = usesHostConfig
-          ? Effect.tryPromise(() => forkClaudeSession(input.sessionId, input.options))
+          ? Effect.tryPromise(() =>
+              loadClaudeSdk().then((sdk) => sdk.forkSession(input.sessionId, input.options)),
+            )
           : forkClaudeSessionInWorker(input).pipe(
               Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
               Effect.provideService(Path.Path, path),
@@ -1377,9 +1377,11 @@ export const layerQueryRunner: Layer.Layer<
         const headMessageId = usesHostConfig
           ? yield* Effect.tryPromise({
               try: () =>
-                getSessionMessages(
-                  result.sessionId,
-                  input.options.dir === undefined ? {} : { dir: input.options.dir },
+                loadClaudeSdk().then((sdk) =>
+                  sdk.getSessionMessages(
+                    result.sessionId,
+                    input.options.dir === undefined ? {} : { dir: input.options.dir },
+                  ),
                 ),
               catch: (cause) => queryRunnerError(cause, "getSessionMessages"),
             }).pipe(
@@ -1409,10 +1411,12 @@ export const layerQueryRunner: Layer.Layer<
           });
           const messages = yield* Effect.tryPromise({
             try: () =>
-              getSubagentMessages(input.sessionId, input.agentId, {
-                ...(input.dir === null ? {} : { dir: input.dir }),
-                limit: 1,
-              }),
+              loadClaudeSdk().then((sdk) =>
+                sdk.getSubagentMessages(input.sessionId, input.agentId, {
+                  ...(input.dir === null ? {} : { dir: input.dir }),
+                  limit: 1,
+                }),
+              ),
             catch: (cause) => queryRunnerError(cause, "getSubagentMessages"),
           });
           const toolUseId = messages[0]?.parent_tool_use_id ?? null;
@@ -4650,8 +4654,8 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
       const home = customHome
         ? yield* readBypassSettings(path.join(homePath, "settings.json"))
         : {};
-      const resolved = yield* Effect.tryPromise(() =>
-        resolveClaudeSettings({
+      const resolved = yield* Effect.tryPromise(async () =>
+        (await loadClaudeSdk()).resolveSettings({
           ...(cwd === null ? {} : { cwd }),
           settingSources: customHome ? ["project", "local"] : ["user", "project", "local"],
           serverManagedSettings: claudeSdkBypassSettings(remote),
@@ -4680,8 +4684,8 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
         adapterOptions.environment.CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL,
       );
       if (Option.isSome(fromEnvironment)) return fromEnvironment.value;
-      const resolved = yield* Effect.tryPromise(() =>
-        resolveClaudeSettings({
+      const resolved = yield* Effect.tryPromise(async () =>
+        (await loadClaudeSdk()).resolveSettings({
           ...(cwd === null ? {} : { cwd }),
           settingSources: customHome ? ["project", "local"] : ["user", "project", "local"],
         }),

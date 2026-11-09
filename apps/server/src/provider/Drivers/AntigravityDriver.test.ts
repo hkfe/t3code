@@ -257,6 +257,7 @@ const layerDeps = ServerConfig.layerTest(process.cwd(), {
   Layer.provideMerge(
     Layer.mock(BackgroundPolicy.BackgroundPolicy)({
       shouldRunScopeWork: () => Effect.succeed(false),
+      awaitProviderStatusDemand: Effect.void,
     }),
   ),
   Layer.provideMerge(
