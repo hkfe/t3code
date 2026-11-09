@@ -383,7 +383,7 @@ function ThreadComposer(props: {
         <Text color={theme.textFaint} wrap="truncate">
           {props.focused && !active
             ? "enter or i to type"
-            : `${running ? "enter steer · ctrl+s queue" : "enter send · ctrl+j newline"} · ctrl+o model`}
+            : `${running ? "enter steer · ctrl+s queue" : "enter send · ctrl+j newline"} · ctrl+l model`}
         </Text>
       </Box>
     </Box>
