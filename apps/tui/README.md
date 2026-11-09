@@ -50,6 +50,10 @@ Split panes show up to four threads at once. `ctrl+y` splits the focused pane si
 `ctrl+x` closes it. A thread you open from the sidebar or the palette opens in the focused pane.
 "Open thread to the side" in the palette opens it beside the focused pane.
 
+`ctrl+x` opens the agent overview: threads that need you, working ones with a live timer, and
+recent ones as cards. Arrows or `h` `j` `k` `l` move, `enter` or `1`-`9` open, `esc` closes. The web
+app uses Option+`` ` ``, which works here too when Option sends Meta.
+
 In the sidebar: `j` / `k` or arrows move, `g` / `G` jump to the top or bottom, `enter` opens a
 thread or folds a section, `h` / `l` (or `←` / `→`, `space`) fold and unfold sections and project
 folders, and `/` filters threads as you type (`escape` clears it).

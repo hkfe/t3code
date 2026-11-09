@@ -38,7 +38,7 @@ export const projectsAtom = Atom.make((get) =>
   ),
 );
 
-const PHASES: Record<OrchestrationV2WorkingPhase, { label: string; color: string }> = {
+export const PHASES: Record<OrchestrationV2WorkingPhase, { label: string; color: string }> = {
   reading: { label: "Reading", color: theme.info },
   editing: { label: "Editing", color: theme.label.violet },
   testing: { label: "Testing", color: theme.label.teal },

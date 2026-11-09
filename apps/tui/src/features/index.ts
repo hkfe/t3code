@@ -1,4 +1,5 @@
 import type { TuiFeature } from "../app/feature.ts";
+import { agentOverviewFeature } from "./agent-overview/index.ts";
 import { commandPaletteFeature } from "./command-palette/index.ts";
 import { composerFeature } from "./composer/index.ts";
 import { connectionFeature } from "./connection/index.ts";
@@ -24,4 +25,5 @@ export const features: ReadonlyArray<TuiFeature> = [
   composerFeature,
   splitPanesFeature,
   notificationsFeature,
+  agentOverviewFeature,
 ];
