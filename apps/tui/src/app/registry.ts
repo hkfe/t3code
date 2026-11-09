@@ -1,6 +1,13 @@
 import { createContext, useContext } from "react";
 
-import type { TuiCommand, TuiFeature, TuiKeybinding, TuiStatusItem, TuiView } from "./feature.ts";
+import type {
+  PaletteSource,
+  TuiCommand,
+  TuiFeature,
+  TuiKeybinding,
+  TuiStatusItem,
+  TuiView,
+} from "./feature.ts";
 
 export interface ShellRegistry {
   readonly commands: ReadonlyMap<string, TuiCommand>;
@@ -10,6 +17,7 @@ export interface ShellRegistry {
   readonly panels: ReadonlyMap<string, TuiView & { readonly title: string }>;
   readonly overlays: ReadonlyMap<string, TuiView>;
   readonly statusItems: ReadonlyArray<TuiStatusItem>;
+  readonly paletteSources: ReadonlyArray<PaletteSource>;
 }
 
 function indexById<T extends { readonly id: string }>(kind: string, items: ReadonlyArray<T>) {
@@ -56,6 +64,12 @@ export function buildShellRegistry(features: ReadonlyArray<TuiFeature>): ShellRe
       ...indexById(
         "status item",
         features.flatMap((feature) => feature.statusItems ?? []),
+      ).values(),
+    ],
+    paletteSources: [
+      ...indexById(
+        "palette source",
+        features.flatMap((feature) => feature.paletteSources ?? []),
       ).values(),
     ],
   };

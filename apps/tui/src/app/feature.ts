@@ -1,4 +1,4 @@
-import type { AtomRegistry } from "effect/reactivity";
+import type { Atom, AtomRegistry } from "effect/reactivity";
 import type { ComponentType } from "react";
 
 import type { Region } from "../state/ui.ts";
@@ -48,6 +48,33 @@ export interface TuiStatusItem {
   readonly component: ComponentType;
 }
 
+/** One command palette row. */
+export interface PaletteItem {
+  /** Unique within its source; the palette remembers recent picks by it. */
+  readonly id: string;
+  readonly title: string;
+  /** Muted text after the title, such as a project or a message preview. */
+  readonly detail?: string;
+  /** Extra words the query matches, not shown. */
+  readonly keywords?: ReadonlyArray<string>;
+  /** Key hint on the right. */
+  readonly hint?: string;
+  readonly run: (context: CommandContext) => void;
+}
+
+/**
+ * Rows for the command palette. `items` reads atoms through `get`. The palette filters and
+ * highlights them by the query, unless `search` is set: then `items` gets the typed query
+ * (debounced) and returns only its own matches, highlighted in `detail`.
+ */
+export interface PaletteSource {
+  readonly id: string;
+  /** Group name shown beside each row. */
+  readonly label: string;
+  readonly search?: boolean;
+  readonly items: (get: Atom.AtomContext, query: string) => ReadonlyArray<PaletteItem>;
+}
+
 /** Everything a feature adds to the shell. Register it once in src/features/index.ts. */
 export interface TuiFeature {
   readonly id: string;
@@ -62,4 +89,6 @@ export interface TuiFeature {
   /** Full-screen layers, picked by `overlayAtom`. */
   readonly overlays?: ReadonlyArray<TuiView>;
   readonly statusItems?: ReadonlyArray<TuiStatusItem>;
+  /** Command palette rows beyond the commands, which it lists by itself. */
+  readonly paletteSources?: ReadonlyArray<PaletteSource>;
 }

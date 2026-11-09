@@ -41,4 +41,8 @@ never reads or writes T3 home (`~/.t3`).
 right panel; `ctrl+b` toggles the sidebar; `alt+←` / `alt+→` resize the focused side region;
 `ctrl+w` closes the right panel; `ctrl+q` or `ctrl+c` quits.
 
+`ctrl+k` or `ctrl+p` opens the command palette: commands, threads, projects and message search.
+`↑`/`↓` or `ctrl+n`/`ctrl+p` move, `enter` runs, `esc` closes. The web app also opens it with
+Cmd+Shift+P, which terminals cannot send.
+
 Building a feature? Read [CONTRIBUTING-TUI.md](./CONTRIBUTING-TUI.md).
