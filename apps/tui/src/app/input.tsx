@@ -1,6 +1,6 @@
 import { RegistryContext } from "@effect/atom-react";
 import { useApp, useInput } from "ink";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { focusAtom, overlayAtom, type Region } from "../state/ui.ts";
 import type { TuiCommand, TuiKeybinding } from "./feature.ts";
@@ -15,12 +15,15 @@ interface Registered {
   readonly first: boolean;
 }
 
-const HandlersContext = createContext<Map<Target, Registered> | null>(null);
+const HandlersContext = createContext<Map<Target, Set<{ readonly current: Registered }>> | null>(
+  null,
+);
 
 /**
  * Receives keys while `target` has focus, after the global bindings. With `first` (text
  * fields) it sees keys before them and returns false for keys it leaves to them.
- * Overlays use "overlay" and always go first.
+ * Overlays use "overlay" and always go first. A view and its footer may share a target;
+ * handlers then run in mount order until one returns true.
  */
 export function useRegionInput(
   target: Target,
@@ -30,14 +33,18 @@ export function useRegionInput(
   const handlers = useContext(HandlersContext);
   if (handlers === null) throw new Error("useRegionInput needs <KeyRouter>.");
   const first = target === "overlay" || options?.first === true;
-  // Re-registers every render so the router always calls the newest closure.
+  const entry = useRef<Registered>({ handler, first });
+  // Updated every render so the router always calls the newest closure.
   useEffect(() => {
-    const registered: Registered = { handler, first };
-    handlers.set(target, registered);
-    return () => {
-      if (handlers.get(target) === registered) handlers.delete(target);
-    };
+    entry.current = { handler, first };
   });
+  useEffect(() => {
+    const set = handlers.get(target) ?? new Set();
+    handlers.set(target, set.add(entry));
+    return () => {
+      set.delete(entry);
+    };
+  }, [handlers, target]);
 }
 
 export function KeyRouter(props: {
@@ -47,21 +54,23 @@ export function KeyRouter(props: {
 }) {
   const registry = useContext(RegistryContext);
   const { exit } = useApp();
-  const [handlers] = useState(() => new Map<Target, Registered>());
+  const [handlers] = useState(() => new Map<Target, Set<{ readonly current: Registered }>>());
 
   useInput((input, key) => {
     const press = { input, key };
     const overlay = registry.get(overlayAtom);
     const focus = registry.get(focusAtom);
-    const target = handlers.get(overlay === null ? focus : "overlay");
-    if (target?.first && target.handler(press)) return;
+    const targets = [...(handlers.get(overlay === null ? focus : "overlay") ?? [])].map(
+      (entry) => entry.current,
+    );
+    if (targets.some((target) => target.first && target.handler(press))) return;
     const binding = findKeybinding(props.bindings, press, { focus, overlay });
     const command = binding ? props.commands.get(binding.command) : undefined;
     if (command) {
       command.run({ registry, exit });
       return;
     }
-    if (target && !target.first) target.handler(press);
+    targets.some((target) => !target.first && target.handler(press));
   });
 
   return <HandlersContext.Provider value={handlers}>{props.children}</HandlersContext.Provider>;

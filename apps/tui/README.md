@@ -49,4 +49,25 @@ In the sidebar: `j` / `k` or arrows move, `g` / `G` jump to the top or bottom, `
 thread or folds a section, `h` / `l` (or `←` / `→`, `space`) fold and unfold sections and project
 folders, and `/` filters threads as you type (`escape` clears it).
 
+### Composer
+
+The composer sits under an open thread and takes the keys while the main pane has focus.
+
+- `enter` sends. While a turn runs, `enter` steers it and `ctrl+s` queues the message instead.
+- New line: `ctrl+j` works in every terminal. `alt+enter` works when Option sends Meta (macOS
+  terminals: "Use Option as Meta"). `shift+enter` works only in terminals that report it (kitty
+  keyboard protocol); elsewhere it sends.
+- `↑` / `↓` move between lines; on an empty draft they recall earlier prompts of the thread.
+  `ctrl+a` / `ctrl+e` or `home` / `end` jump in the line; `alt+←` / `alt+→`, `ctrl+←` / `ctrl+→`
+  or `alt+b` / `alt+f` jump by word; `alt+backspace` and `ctrl+u` delete a word and to line start.
+- `@` lists files of the thread's workspace: `↑` / `↓` pick, `tab` or `enter` insert.
+- Paste or drop an image file (png, jpg, gif, webp) to attach it; `backspace` on an empty draft
+  removes the last one.
+- `ctrl+l` opens the model picker (type to filter, `←` / `→` effort, `enter` picks). `ctrl+g`
+  cycles the runtime mode and `ctrl+t` toggles plan mode. They apply to the next message.
+- `escape` clears a reply quote, else gives the keys to the thread view; `enter` or `i` takes
+  them back.
+
+Drafts live in memory per thread until you quit.
+
 Building a feature? Read [CONTRIBUTING-TUI.md](./CONTRIBUTING-TUI.md).

@@ -1,5 +1,6 @@
 import type { TuiFeature } from "../app/feature.ts";
 import { commandPaletteFeature } from "./command-palette/index.ts";
+import { composerFeature } from "./composer/index.ts";
 import { connectionFeature } from "./connection/index.ts";
 import { coreFeature } from "./core/index.tsx";
 import { requestsFeature } from "./requests/index.tsx";
@@ -16,4 +17,5 @@ export const features: ReadonlyArray<TuiFeature> = [
   commandPaletteFeature,
   requestsFeature,
   threadActionsFeature,
+  composerFeature,
 ];

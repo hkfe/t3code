@@ -1,7 +1,7 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import type { AtomRegistry } from "effect/reactivity";
-import { Box, Text, useWindowSize } from "ink";
-import type { ComponentType } from "react";
+import { Box, measureElement, Text, useWindowSize, type DOMElement } from "ink";
+import { useLayoutEffect, useRef, useState, type ComponentType } from "react";
 
 import {
   focusAtom,
@@ -12,7 +12,7 @@ import {
   type Region,
 } from "../state/ui.ts";
 import { theme } from "../theme/theme.ts";
-import type { TuiFeature, TuiViewProps } from "./feature.ts";
+import type { TuiFeature, TuiViewFooter, TuiViewProps } from "./feature.ts";
 import { KeyRouter } from "./input.tsx";
 import { buildShellRegistry, ShellRegistryContext, useShellRegistry } from "./registry.ts";
 
@@ -27,10 +27,20 @@ function RegionFrame(props: {
   readonly height: number;
   readonly title?: string;
   readonly component: ComponentType<TuiViewProps> | null;
+  readonly footers?: ReadonlyArray<TuiViewFooter>;
 }) {
   const focused = useAtomValue(focusAtom) === props.region;
   const Component = props.component;
   const innerHeight = Math.max(0, props.height - FRAME_Y - (props.title ? 1 : 0));
+  const innerWidth = Math.max(0, (props.width ?? MIN_REGION_WIDTH) - FRAME_X);
+  const footers = props.footers ?? [];
+  const footerRef = useRef<DOMElement>(null);
+  const [footerRows, setFooterRows] = useState(0);
+  // Footer height is Yoga layout output, known only after render.
+  useLayoutEffect(() => {
+    const rows = footerRef.current ? measureElement(footerRef.current).height : 0;
+    if (rows !== footerRows) setFooterRows(rows);
+  });
   return (
     <Box
       flexDirection="column"
@@ -51,9 +61,21 @@ function RegionFrame(props: {
       {Component && (
         <Component
           focused={focused}
-          width={Math.max(0, (props.width ?? MIN_REGION_WIDTH) - FRAME_X)}
-          height={innerHeight}
+          width={innerWidth}
+          height={Math.max(0, innerHeight - footerRows)}
         />
+      )}
+      {footers.length > 0 && (
+        <Box ref={footerRef} flexDirection="column" flexShrink={0}>
+          {footers.map((footer) => (
+            <footer.component
+              key={footer.id}
+              focused={focused}
+              width={innerWidth}
+              height={innerHeight}
+            />
+          ))}
+        </Box>
       )}
     </Box>
   );
@@ -116,6 +138,7 @@ function Shell() {
             width={mainWidth}
             height={bodyHeight}
             component={registry.views.get(route.view)?.component ?? null}
+            footers={registry.footers.filter((footer) => footer.view === route.view)}
           />
           {panel && panelWidth > 0 && (
             <RegionFrame

@@ -42,6 +42,14 @@ export interface TuiView {
   readonly component: ComponentType<TuiViewProps>;
 }
 
+/** Sits under a main view, inside its frame; the view gets the rows left over. */
+export interface TuiViewFooter {
+  readonly id: string;
+  /** Id of the main view it belongs to. */
+  readonly view: string;
+  readonly component: ComponentType<TuiViewProps>;
+}
+
 export interface TuiStatusItem {
   readonly id: string;
   readonly align: "left" | "right";
@@ -84,6 +92,7 @@ export interface TuiFeature {
   readonly sidebar?: TuiView["component"];
   /** Main-pane views, picked by `routeAtom.view`. */
   readonly views?: ReadonlyArray<TuiView>;
+  readonly footers?: ReadonlyArray<TuiViewFooter>;
   /** Right-panel views, picked by `layoutAtom.panel`. */
   readonly panels?: ReadonlyArray<TuiView & { readonly title: string }>;
   /** Full-screen layers, picked by `overlayAtom`. */

@@ -51,6 +51,7 @@ What a feature can add (all optional, see `app/feature.ts`):
 | ---------------- | ----------------------------------------------------- | ------------------------------- |
 | `sidebar`        | Left region body. Only one feature may set it.        | always                          |
 | `views`          | Main region.                                          | `routeAtom.view`                |
+| `footers`        | Under a main view, same frame (the composer).         | its `view` id                   |
 | `panels`         | Right region, with a title line.                      | `layoutAtom.panel` (null = off) |
 | `overlays`       | Replaces the regions; status bar stays.               | `overlayAtom` (null = off)      |
 | `statusItems`    | Status bar, `align: "left"` or `"right"`.             | always                          |
@@ -63,8 +64,9 @@ them. Recent picks come first. Set `search: true` when the source matches the qu
 server message search does): it then gets the typed query, debounced, and its rows show unfiltered.
 Item ids must be unique within the source.
 
-View, panel and overlay components get `{ focused, width, height }`: the inner size in cells. Render
-inside that box. For long lists, render only the rows that fit (see `features/sidebar/Sidebar.tsx`).
+View, footer, panel and overlay components get `{ focused, width, height }`: the inner size in
+cells. A view gets the rows its footers leave. Render inside that box. For long lists, render only
+the rows that fit (see `features/sidebar/Sidebar.tsx`).
 
 Replacing a wave-0 module (sidebar, thread view): edit that feature's folder, or remove its line
 from `features/index.ts` and add yours. Keep the view ids `home` and `thread`, because the router
@@ -108,8 +110,9 @@ useRegionInput("main", (press) => {
 });
 ```
 
-- One handler per target (`"sidebar" | "main" | "panel" | "overlay"`). The mounted view owns its
-  region. Do not use Ink's `useInput` in features: it bypasses focus and the global bindings.
+- The mounted view owns its region (`"sidebar" | "main" | "panel" | "overlay"`). A view footer
+  shares `"main"` with its view; handlers run in mount order until one returns true. Do not use
+  Ink's `useInput` in features: it bypasses focus and the global bindings.
 - Text fields (composer, palette query) use `{ first: true }` and return `false` for keys they
   leave to the global bindings (`ctrl+...`, `escape`, `tab`). Overlays must return `false` for
   `escape`, so `core.closeOverlay` closes them.
@@ -128,6 +131,9 @@ All server data comes from `@t3tools/client-runtime` atoms, made once per app in
 | `state/settings`     | `serverEnvironment.settingsValueAtom(environmentId)`: server settings (`threadLabels`...), server config                       |
 | `state/threadShells` | `environmentThreadShells.quietThreadShellsAtom`: presented thread shells of every environment, as web lists them               |
 | `state/ui`           | `routeAtom`, `focusAtom`, `overlayAtom`, `layoutAtom` (TUI view state, plain writable atoms)                                   |
+
+`state/composer` exports `composerReplyTargetAtom`: the message the next send quotes. Set it to
+reply; the composer shows the quote chip and clears it after the send.
 
 Read them in components with `useAtomValue` from `@effect/atom-react`. Reading a thread atom starts
 its live subscription, and unmounting releases it. Do not copy server data into React state.

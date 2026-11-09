@@ -7,6 +7,7 @@ import type {
   TuiKeybinding,
   TuiStatusItem,
   TuiView,
+  TuiViewFooter,
 } from "./feature.ts";
 
 export interface ShellRegistry {
@@ -14,6 +15,7 @@ export interface ShellRegistry {
   readonly keybindings: ReadonlyArray<TuiKeybinding>;
   readonly sidebar: TuiView["component"] | null;
   readonly views: ReadonlyMap<string, TuiView>;
+  readonly footers: ReadonlyArray<TuiViewFooter>;
   readonly panels: ReadonlyMap<string, TuiView & { readonly title: string }>;
   readonly overlays: ReadonlyMap<string, TuiView>;
   readonly statusItems: ReadonlyArray<TuiStatusItem>;
@@ -52,6 +54,12 @@ export function buildShellRegistry(features: ReadonlyArray<TuiFeature>): ShellRe
       "view",
       features.flatMap((feature) => feature.views ?? []),
     ),
+    footers: [
+      ...indexById(
+        "footer",
+        features.flatMap((feature) => feature.footers ?? []),
+      ).values(),
+    ],
     panels: indexById(
       "panel",
       features.flatMap((feature) => feature.panels ?? []),
