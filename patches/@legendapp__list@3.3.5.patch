@@ -1619,7 +1619,7 @@ index 95465f2ab89ce41a10553f58af83618f7310e83c..d7cbe1cb43449cc29822b2646deabbdd
      }
    }
 diff --git a/react.js b/react.js
-index 914d2dafaafa001c9ab6791a0a0581659295e333..8c320b0dfb3ea60ef145274b37b1297b7dee26dc 100644
+index 914d2dafaafa001c9ab6791a0a0581659295e333..d8212e211cde81eb92510fe1669ba27009718285 100644
 --- a/react.js
 +++ b/react.js
 @@ -1908,6 +1908,10 @@ function updateScroll(ctx, newScroll, forceUpdate, options) {
@@ -1810,7 +1810,7 @@ index 914d2dafaafa001c9ab6791a0a0581659295e333..8c320b0dfb3ea60ef145274b37b1297b
        }
      }
    }
-@@ -5734,37 +5787,55 @@ function findLIS(arr) {
+@@ -5734,37 +5787,73 @@ function findLIS(arr) {
  }
  
  // src/hooks/useDOMOrder.ts
@@ -1842,18 +1842,13 @@ index 914d2dafaafa001c9ab6791a0a0581659295e333..8c320b0dfb3ea60ef145274b37b1297b
 +  const [containerOrderUpdate] = useArr$(["containerOrderUpdate"]);
 +  const settleRef = React3.useRef(void 0);
 +  React3.useLayoutEffect(() => {
-+    const sort = () => {
-+      settleRef.current = void 0;
-+      const parent = ref.current;
-+      if (!parent) {
-+        return;
-+      }
-+      const indexByElement = /* @__PURE__ */ new Map();
++    const indexByElement = () => {
++      const indices = /* @__PURE__ */ new Map();
 +      for (const [containerId, viewRef] of ctx.viewRefs) {
 +        const element = viewRef.current;
 +        const index = peek$(ctx, `containerItemIndex${containerId}`);
 +        if (element && index !== void 0) {
-+          indexByElement.set(element, index);
++          indices.set(element, index);
          }
 -        debounceRef.current = void 0;
 -      }, 500);
@@ -1863,15 +1858,38 @@ index 914d2dafaafa001c9ab6791a0a0581659295e333..8c320b0dfb3ea60ef145274b37b1297b
 -      if (debounceRef.current !== void 0) {
 -        clearTimeout(debounceRef.current);
        }
-+      sortDOMElements(parent, indexByElement);
++      return indices;
      };
 -  }, [ctx]);
++    const sort = () => {
++      settleRef.current = void 0;
++      const parent = ref.current;
++      if (!parent) {
++        return;
++      }
++      sortDOMElements(parent, indexByElement());
++    };
++    // Only pinned rows (alwaysRender) hold an end; other ends wait for the settle sort.
++    const pinnedEndOutOfOrder = () => {
++      let first, last, min, max;
++      for (const [containerId, viewRef] of ctx.viewRefs) {
++        const element = viewRef.current;
++        const index = peek$(ctx, `containerItemIndex${containerId}`);
++        if (!element || index === void 0) continue;
++        const entry = { element, index, pinned: ctx.state.stickyContainerPool.has(containerId) };
++        if (!first || element.compareDocumentPosition(first.element) & Node.DOCUMENT_POSITION_FOLLOWING) first = entry;
++        if (!last || element.compareDocumentPosition(last.element) & Node.DOCUMENT_POSITION_PRECEDING) last = entry;
++        if (!min || index < min.index) min = entry;
++        if (!max || index > max.index) max = entry;
++      }
++      return !!min && (min.pinned && min !== first || max.pinned && max !== last);
++    };
 +    if (settleRef.current !== void 0) {
 +      clearTimeout(settleRef.current);
 +    }
 +    // Before paint: NVDA's browse mode keeps the first DOM order it reads. Each move
 +    // lays its row out again, so during a continuous scroll, sort once it settles.
-+    if (!isUserScrolling(ctx.state)) {
++    if (!isUserScrolling(ctx.state) || pinnedEndOutOfOrder()) {
 +      sort();
 +      return;
 +    }
@@ -1892,7 +1910,7 @@ index 914d2dafaafa001c9ab6791a0a0581659295e333..8c320b0dfb3ea60ef145274b37b1297b
  }
  function useFreshDataTransitionVisibility(readyToRender, transitionEpoch) {
    const [completedTransitionEpoch, setCompletedTransitionEpoch] = React3.useState(transitionEpoch);
-@@ -6446,8 +6517,8 @@ function ScrollAdjust() {
+@@ -6446,8 +6535,8 @@ function ScrollAdjust() {
                window.getComputedStyle(contentNode)[axis.paddingEndProp]
              );
              const temporaryPaddingEnd = `${(currentPaddingEnd || 0) + pad}px`;
@@ -1903,7 +1921,7 @@ index 914d2dafaafa001c9ab6791a0a0581659295e333..8c320b0dfb3ea60ef145274b37b1297b
              scrollBy();
              if (resetPaddingRafRef.current !== void 0) {
 diff --git a/react.mjs b/react.mjs
-index 95465f2ab89ce41a10553f58af83618f7310e83c..252a9d5b23e271c089d30c357a78dff754f1c899 100644
+index 95465f2ab89ce41a10553f58af83618f7310e83c..6113ba40b48d03d901a90a471fbca69f8567030d 100644
 --- a/react.mjs
 +++ b/react.mjs
 @@ -1887,6 +1887,10 @@ function updateScroll(ctx, newScroll, forceUpdate, options) {
@@ -2094,7 +2112,7 @@ index 95465f2ab89ce41a10553f58af83618f7310e83c..252a9d5b23e271c089d30c357a78dff7
        }
      }
    }
-@@ -5713,37 +5766,55 @@ function findLIS(arr) {
+@@ -5713,37 +5766,73 @@ function findLIS(arr) {
  }
  
  // src/hooks/useDOMOrder.ts
@@ -2126,18 +2144,13 @@ index 95465f2ab89ce41a10553f58af83618f7310e83c..252a9d5b23e271c089d30c357a78dff7
 +  const [containerOrderUpdate] = useArr$(["containerOrderUpdate"]);
 +  const settleRef = useRef(void 0);
 +  useLayoutEffect(() => {
-+    const sort = () => {
-+      settleRef.current = void 0;
-+      const parent = ref.current;
-+      if (!parent) {
-+        return;
-+      }
-+      const indexByElement = /* @__PURE__ */ new Map();
++    const indexByElement = () => {
++      const indices = /* @__PURE__ */ new Map();
 +      for (const [containerId, viewRef] of ctx.viewRefs) {
 +        const element = viewRef.current;
 +        const index = peek$(ctx, `containerItemIndex${containerId}`);
 +        if (element && index !== void 0) {
-+          indexByElement.set(element, index);
++          indices.set(element, index);
          }
 -        debounceRef.current = void 0;
 -      }, 500);
@@ -2147,15 +2160,38 @@ index 95465f2ab89ce41a10553f58af83618f7310e83c..252a9d5b23e271c089d30c357a78dff7
 -      if (debounceRef.current !== void 0) {
 -        clearTimeout(debounceRef.current);
        }
-+      sortDOMElements(parent, indexByElement);
++      return indices;
      };
 -  }, [ctx]);
++    const sort = () => {
++      settleRef.current = void 0;
++      const parent = ref.current;
++      if (!parent) {
++        return;
++      }
++      sortDOMElements(parent, indexByElement());
++    };
++    // Only pinned rows (alwaysRender) hold an end; other ends wait for the settle sort.
++    const pinnedEndOutOfOrder = () => {
++      let first, last, min, max;
++      for (const [containerId, viewRef] of ctx.viewRefs) {
++        const element = viewRef.current;
++        const index = peek$(ctx, `containerItemIndex${containerId}`);
++        if (!element || index === void 0) continue;
++        const entry = { element, index, pinned: ctx.state.stickyContainerPool.has(containerId) };
++        if (!first || element.compareDocumentPosition(first.element) & Node.DOCUMENT_POSITION_FOLLOWING) first = entry;
++        if (!last || element.compareDocumentPosition(last.element) & Node.DOCUMENT_POSITION_PRECEDING) last = entry;
++        if (!min || index < min.index) min = entry;
++        if (!max || index > max.index) max = entry;
++      }
++      return !!min && (min.pinned && min !== first || max.pinned && max !== last);
++    };
 +    if (settleRef.current !== void 0) {
 +      clearTimeout(settleRef.current);
 +    }
 +    // Before paint: NVDA's browse mode keeps the first DOM order it reads. Each move
 +    // lays its row out again, so during a continuous scroll, sort once it settles.
-+    if (!isUserScrolling(ctx.state)) {
++    if (!isUserScrolling(ctx.state) || pinnedEndOutOfOrder()) {
 +      sort();
 +      return;
 +    }
@@ -2176,7 +2212,7 @@ index 95465f2ab89ce41a10553f58af83618f7310e83c..252a9d5b23e271c089d30c357a78dff7
  }
  function useFreshDataTransitionVisibility(readyToRender, transitionEpoch) {
    const [completedTransitionEpoch, setCompletedTransitionEpoch] = useState(transitionEpoch);
-@@ -6425,8 +6496,8 @@ function ScrollAdjust() {
+@@ -6425,8 +6514,8 @@ function ScrollAdjust() {
                window.getComputedStyle(contentNode)[axis.paddingEndProp]
              );
              const temporaryPaddingEnd = `${(currentPaddingEnd || 0) + pad}px`;
