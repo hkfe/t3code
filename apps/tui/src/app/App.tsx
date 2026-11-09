@@ -11,6 +11,7 @@ import {
   routeAtom,
   type Region,
 } from "../state/ui.ts";
+import { toastAtom, type Toast } from "../state/toast.ts";
 import { theme } from "../theme/theme.ts";
 import type { TuiFeature, TuiViewFooter, TuiViewProps } from "./feature.ts";
 import { KeyRouter } from "./input.tsx";
@@ -106,12 +107,24 @@ function StatusBar({ width }: { readonly width: number }) {
   );
 }
 
+function ToastLine({ toast, width }: { readonly toast: Toast; readonly width: number }) {
+  return (
+    <Box width={width} height={1} paddingX={1}>
+      <Text wrap="truncate">
+        <Text color={theme[toast.tone]}>{toast.text}</Text>
+        {toast.hint && <Text color={theme.textFaint}> · {toast.hint}</Text>}
+      </Text>
+    </Box>
+  );
+}
+
 function Shell() {
   const registry = useShellRegistry();
   const { columns, rows } = useWindowSize();
   const layout = useAtomValue(layoutAtom);
   const route = useAtomValue(routeAtom);
-  const bodyHeight = Math.max(FRAME_Y + 1, rows - STATUS_BAR_ROWS);
+  const toast = useAtomValue(toastAtom);
+  const bodyHeight = Math.max(FRAME_Y + 1, rows - STATUS_BAR_ROWS - (toast ? 1 : 0));
   const panel = layout.panel === null ? undefined : registry.panels.get(layout.panel);
   // Side regions give way so the main pane keeps at least MIN_REGION_WIDTH columns.
   const room = Math.max(0, columns - MIN_REGION_WIDTH - FRAME_X);
@@ -151,6 +164,7 @@ function Shell() {
           )}
         </Box>
       )}
+      {toast && <ToastLine toast={toast} width={columns} />}
       <StatusBar width={columns} />
     </Box>
   );
@@ -160,9 +174,10 @@ function useOverlay() {
   const { overlays } = useShellRegistry();
   const { columns, rows } = useWindowSize();
   const id = useAtomValue(overlayAtom);
+  const toastRows = useAtomValue(toastAtom) ? 1 : 0;
   const overlay = id === null ? undefined : overlays.get(id);
   if (!overlay) return null;
-  return <overlay.component focused width={columns} height={rows - STATUS_BAR_ROWS} />;
+  return <overlay.component focused width={columns} height={rows - STATUS_BAR_ROWS - toastRows} />;
 }
 
 export function App(props: {
