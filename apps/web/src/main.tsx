@@ -11,6 +11,12 @@ import { AppRoot } from "./AppRoot";
 import { clearChunkReloadGuard, reloadOnceForChunkLoadError } from "./lib/chunkReloadGuard";
 
 const router = startAppServices();
+// The router requests route chunks only after the auth check in beforeLoad. Start them now so
+// the download overlaps the auth round trip.
+for (const match of router.matchRoutes(router.state.location)) {
+  const route = router.looseRoutesById[match.routeId];
+  if (route) void router.loadRouteChunk(route);
+}
 
 const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
 

@@ -78,6 +78,8 @@ import {
 } from "lucide-react";
 import { openThreadFind } from "./chat/threadFindStore";
 import {
+  lazy,
+  Suspense,
   useDeferredValue,
   useEffect,
   useReducer,
@@ -245,9 +247,9 @@ import { ProjectFilePicker } from "./files/ProjectFilePicker";
 import { openLinkPullRequestDialog } from "./pullRequest/LinkPullRequestDialog";
 import { canShareWithGuestAtom } from "./chat/guestShareAvailability";
 import { openGuestShareDialog } from "./chat/guestShareDialogState";
-import { ProjectContentSearchDialog } from "./search/ProjectContentSearchDialog";
 import { settingsForThisPlatform, SETTINGS_SECTION_LABELS } from "./settings/settingsSearch";
 import { primaryServerKeybindingsAtom } from "../state/server";
+
 import { resolveShortcutCommand, threadJumpIndexFromCommand } from "../keybindings";
 import { CommandDialog, CommandDialogPopup, CommandFooterAction } from "./ui/command";
 import { Button } from "./ui/button";
@@ -262,6 +264,13 @@ import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { readPullRequestListPreferences } from "~/components/pullRequest/pullRequestListPreferences";
 import { useThreadRouteTarget } from "../hooks/useThreadRouteTarget";
 import { threadRecentUse } from "@t3tools/shared/paletteSearch";
+
+// Content search highlights matches with @pierre/diffs, which is too big for the startup bundle.
+const ProjectContentSearchDialog = lazy(() =>
+  import("./search/ProjectContentSearchDialog").then((m) => ({
+    default: m.ProjectContentSearchDialog,
+  })),
+);
 
 const EMPTY_BROWSE_ENTRIES: FilesystemBrowseResult["entries"] = [];
 const ADD_PROJECT_ENTRY_GROUP = "add-project";
@@ -373,7 +382,9 @@ function CommandPaletteDialog(props: {
       {props.mode === "files" ? (
         <ProjectFilePicker setOpen={props.setOpen} />
       ) : props.mode === "content" ? (
-        <ProjectContentSearchDialog onOpenChange={props.setOpen} />
+        <Suspense fallback={null}>
+          <ProjectContentSearchDialog onOpenChange={props.setOpen} />
+        </Suspense>
       ) : (
         <OpenCommandPaletteDialog
           key={props.session}

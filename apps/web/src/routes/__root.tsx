@@ -11,7 +11,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { Check, Copy } from "lucide";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { APP_DISPLAY_NAME, APP_VERSION } from "../branding";
 import { AppSidebarLayout } from "../components/AppSidebarLayout";
@@ -22,7 +22,6 @@ import { AddProjectToMachineDialogHost } from "../components/AddProjectToMachine
 import { ConfirmDialogHost } from "../components/ConfirmDialogHost";
 import { DevReplayHost } from "../components/DevReplayHost";
 import { FirstRunGate } from "../components/onboarding/FirstRunGate";
-import { ConnectOnboardingDialog } from "../components/cloud/ConnectOnboardingDialog";
 import { RelayClientInstallDialog } from "../components/cloud/RelayClientInstallDialog";
 import { SshPasswordPromptDialog } from "../components/desktop/SshPasswordPromptDialog";
 import { SnapShotCoordinator } from "../components/desktop/SnapShotCoordinator";
@@ -59,6 +58,13 @@ import { readProject } from "../state/entities";
 
 import { getDesktopSnapShotBridge } from "../lib/desktopSnapShot";
 import { shouldResumeSnapShotSetupOnStartup } from "../lib/snapShotSetupResume";
+
+// Pulls in @clerk/react, which local startup does not need.
+const ConnectOnboardingDialog = lazy(() =>
+  import("../components/cloud/ConnectOnboardingDialog").then((m) => ({
+    default: m.ConnectOnboardingDialog,
+  })),
+);
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -203,7 +209,9 @@ function RootRouteBranch() {
         ) : null}
         {isElectron ? <RunningThreadKeepAlive /> : null}
         <RelayClientInstallDialog />
-        <ConnectOnboardingDialog />
+        <Suspense fallback={null}>
+          <ConnectOnboardingDialog />
+        </Suspense>
         <SshPasswordPromptDialog />
         <SnapShotCoordinator />
         <ReopenClosedViewShortcut />
