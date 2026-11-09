@@ -101,7 +101,7 @@ export async function runCommand<W, A, E>(
 }
 
 /** OSC 52: the terminal sets its clipboard, also over SSH. Terminals without it ignore it. */
-function copyToClipboard(text: string) {
+export function copyToClipboard(text: string) {
   process.stdout.write(`\x1b]52;c;${Buffer.from(text).toString("base64")}\x07`);
 }
 
