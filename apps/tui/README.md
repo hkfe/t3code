@@ -70,4 +70,11 @@ The composer sits under an open thread and takes the keys while the main pane ha
 
 Drafts live in memory per thread until you quit.
 
+### Pull request panel
+
+`ctrl+y` opens the pull requests linked to the open thread in the right panel, and closes it.
+`[` / `]` or `1`-`9` switch tabs, `n` goes to the next linked pull request and `r` reloads.
+`j` / `k`, `ctrl+d` / `ctrl+u` and `g` / `G` scroll. In Timeline, `e` expands commit runs. In
+Checks, `j` / `k` select a check, `enter` shows its log (GitHub Actions) and `escape` hides it.
+
 Building a feature? Read [CONTRIBUTING-TUI.md](./CONTRIBUTING-TUI.md).

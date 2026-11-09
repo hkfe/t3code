@@ -1,3 +1,4 @@
+import type { EnvironmentId, PullRequestRef } from "@t3tools/contracts";
 import type { Atom, AtomRegistry } from "effect/reactivity";
 import type { ComponentType } from "react";
 
@@ -83,6 +84,24 @@ export interface PaletteSource {
   readonly items: (get: Atom.AtomContext, query: string) => ReadonlyArray<PaletteItem>;
 }
 
+export interface PullRequestTarget {
+  readonly environmentId: EnvironmentId;
+  readonly reference: PullRequestRef;
+}
+
+export interface PrPanelTabProps extends TuiViewProps {
+  readonly target: PullRequestTarget;
+}
+
+/** A tab of the pull request panel. Only the active tab is mounted; it gets the "panel" keys first. */
+export interface TuiPrPanelTab {
+  readonly id: string;
+  readonly title: string;
+  /** Tabs sort by it: summary 10, timeline 20, checks 30, code 40. */
+  readonly order: number;
+  readonly component: ComponentType<PrPanelTabProps>;
+}
+
 /** Everything a feature adds to the shell. Register it once in src/features/index.ts. */
 export interface TuiFeature {
   readonly id: string;
@@ -100,4 +119,6 @@ export interface TuiFeature {
   readonly statusItems?: ReadonlyArray<TuiStatusItem>;
   /** Command palette rows beyond the commands, which it lists by itself. */
   readonly paletteSources?: ReadonlyArray<PaletteSource>;
+  /** Tabs of the pull request panel (features/pr-panel). */
+  readonly prPanelTabs?: ReadonlyArray<TuiPrPanelTab>;
 }
