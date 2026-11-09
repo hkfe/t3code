@@ -957,11 +957,21 @@ export const WORKING_PHASE_PRESENTATION: Record<
   OrchestrationV2WorkingPhase,
   { readonly label: string; readonly className: string }
 > = {
+  thinking: { label: "Thinking", className: "text-muted-foreground" },
+  responding: { label: "Responding", className: "text-sky-600 dark:text-sky-300" },
   reading: { label: "Reading", className: "text-info-foreground" },
   editing: { label: "Editing", className: "text-violet-600 dark:text-violet-300" },
+  running: { label: "Running", className: "text-muted-foreground" },
+  installing: { label: "Installing", className: "text-amber-600 dark:text-amber-300" },
+  building: { label: "Building", className: "text-amber-600 dark:text-amber-300" },
   testing: { label: "Testing", className: "text-teal-600 dark:text-teal-300" },
   reviewing: { label: "Reviewing", className: "text-pink-600 dark:text-pink-300" },
   measuring: { label: "Measuring", className: "text-orange-600 dark:text-orange-300" },
+  committing: { label: "Committing", className: "text-emerald-600 dark:text-emerald-300" },
+  pushing: { label: "Pushing", className: "text-emerald-600 dark:text-emerald-300" },
+  delegating: { label: "Delegating", className: "text-indigo-600 dark:text-indigo-300" },
+  waiting: { label: "Waiting", className: "text-muted-foreground" },
+  planning: { label: "Planning", className: "text-sky-600 dark:text-sky-300" },
 };
 
 /**

@@ -53,6 +53,14 @@ import {
   Undo2Icon,
   UserRoundIcon,
   XIcon,
+  BrainIcon,
+  GitCommitHorizontalIcon,
+  HammerIcon,
+  ListTodoIcon,
+  MessageSquareTextIcon,
+  PackageIcon,
+  UploadIcon,
+  UsersRoundIcon,
 } from "lucide-react";
 import {
   memo,
@@ -538,6 +546,15 @@ const TOP_STATUS_ICONS = {
   testing: FlaskConicalIcon,
   reviewing: ScanEyeIcon,
   measuring: GaugeIcon,
+  thinking: BrainIcon,
+  responding: MessageSquareTextIcon,
+  running: TerminalIcon,
+  installing: PackageIcon,
+  building: HammerIcon,
+  committing: GitCommitHorizontalIcon,
+  pushing: UploadIcon,
+  delegating: UsersRoundIcon,
+  planning: ListTodoIcon,
 } as const;
 
 function TopStatusIcon(props: { icon: keyof typeof TOP_STATUS_ICONS; className: string }) {

@@ -2071,11 +2071,21 @@ export type OrchestrationV2LatestVisibleMessageSummary =
 
 /** What the agent is doing now, from its most recent tool call. */
 export const OrchestrationV2WorkingPhase = Schema.Literals([
+  "thinking",
+  "responding",
   "reading",
   "editing",
+  "running",
+  "installing",
+  "building",
   "testing",
   "reviewing",
   "measuring",
+  "committing",
+  "pushing",
+  "delegating",
+  "waiting",
+  "planning",
 ]);
 export type OrchestrationV2WorkingPhase = typeof OrchestrationV2WorkingPhase.Type;
 
