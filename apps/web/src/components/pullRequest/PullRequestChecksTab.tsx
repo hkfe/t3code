@@ -243,30 +243,32 @@ function CheckRow({
         ) : null}
       </div>
       {expanded ? (
-        <div className="mb-3 ml-9 mr-3 text-xs">
-          {!check.url ? (
-            <p className="text-muted-foreground">The host reported no log for this check.</p>
-          ) : logQuery.error ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span>
-                Could not load the log. It may have expired, or this account cannot read it.
-              </span>
-              <Button size="xs" variant="ghost" onClick={logQuery.refresh}>
-                Retry
-              </Button>
-            </div>
-          ) : !logQuery.isSuccess && !log ? (
-            <p className="text-muted-foreground">Loading log…</p>
-          ) : !log ? (
-            <p className="text-muted-foreground">
-              Logs are only available on {checkHostName(check.url)}.{" "}
-              <Button size="xs" variant="link" onClick={() => check.url && open(check.url)}>
-                Open
-              </Button>
-            </p>
-          ) : (
-            <div className="overflow-hidden rounded-md border border-border/60">
-              <div className="flex items-center gap-1 border-b border-border/60 px-2 py-1 text-muted-foreground">
+        <div className="mr-3 mb-3 ml-8.5 overflow-hidden rounded-md border border-border/60 text-xs">
+          <div className="flex min-h-9 items-center gap-1 px-2 py-1 text-muted-foreground sm:min-h-8">
+            {!check.url ? (
+              <span className="min-w-0 flex-1">The host reported no log for this check.</span>
+            ) : logQuery.error ? (
+              <>
+                <span className="min-w-0 flex-1">
+                  Could not load the log. It may have expired, or this account cannot read it.
+                </span>
+                <Button size="xs" variant="ghost" onClick={logQuery.refresh}>
+                  Retry
+                </Button>
+              </>
+            ) : !logQuery.isSuccess && !log ? (
+              <span className="min-w-0 flex-1">Loading log…</span>
+            ) : !log ? (
+              <>
+                <span className="min-w-0 flex-1">
+                  Logs are only available on {checkHostName(check.url)}.
+                </span>
+                <Button size="xs" variant="ghost" onClick={() => check.url && open(check.url)}>
+                  Open
+                </Button>
+              </>
+            ) : (
+              <>
                 <span className="min-w-0 flex-1 truncate">
                   {log.failedStep ? "Failing step" : "End of log"}
                   {log.truncated ? " (trimmed)" : ""}
@@ -302,16 +304,20 @@ function CheckRow({
                   </TooltipTrigger>
                   <TooltipPopup side="top">Refresh log</TooltipPopup>
                 </Tooltip>
-              </div>
-              {log.text.length === 0 ? (
-                <p className="px-2 py-2 text-muted-foreground">The log is empty.</p>
-              ) : (
-                <pre className="max-h-96 overflow-auto bg-muted/40 px-2 py-2 font-mono text-xs leading-5 whitespace-pre">
-                  {log.text}
-                </pre>
-              )}
-            </div>
-          )}
+              </>
+            )}
+          </div>
+          {log ? (
+            log.text.length === 0 ? (
+              <p className="border-t border-border/60 px-2 py-2 text-muted-foreground">
+                The log is empty.
+              </p>
+            ) : (
+              <pre className="max-h-96 overflow-auto border-t border-border/60 bg-muted/40 px-2 py-2 font-mono text-xs leading-5 whitespace-pre">
+                {log.text}
+              </pre>
+            )
+          ) : null}
         </div>
       ) : null}
     </li>
