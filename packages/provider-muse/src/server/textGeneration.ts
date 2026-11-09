@@ -23,6 +23,7 @@ import {
   buildCommitMessagePrompt,
   buildPrContentPrompt,
   buildThreadTitlePrompt,
+  pickThreadLabels,
 } from "@t3tools/provider-core/server/textGenerationPrompts";
 import {
   sanitizeCommitSubject,
@@ -338,7 +339,11 @@ export const makeMuseTextGeneration = Effect.fn("makeMuseTextGeneration")(functi
       ...buildThreadTitlePrompt(input),
       modelSelection: input.modelSelection,
     });
-    return { title: sanitizeThreadTitle(generated.title) };
+    const labels = pickThreadLabels("labels" in generated && generated.labels, input.labels);
+    return {
+      title: sanitizeThreadTitle(generated.title),
+      ...(labels.length > 0 ? { labels } : {}),
+    };
   });
   const generateReviewGuide: ProviderTextGeneration["generateReviewGuide"] = () =>
     Effect.fail(investigationUnsupported("generateReviewGuide", "Muse Code"));

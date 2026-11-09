@@ -168,6 +168,8 @@ Labels are small colored tags on a thread. On web and desktop they show in the s
 
 Agents can label their own thread too, but only with labels from your list. Edit the list in **Settings → Threads → Labels**: add, rename, recolor, reorder, or delete labels. Each machine keeps its own list.
 
+New threads get labels automatically. When the first title is written, the same model picks up to 3 labels from your list. It skips a thread that already has labels. To turn this off, use **Label new threads automatically** in the same section.
+
 ## Settle finished work
 
 Choose **Settle thread** from its menu to move finished work out of the active list

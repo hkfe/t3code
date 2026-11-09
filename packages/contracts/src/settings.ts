@@ -1276,6 +1276,8 @@ export const ServerSettings = Schema.Struct({
   threadLabels: ThreadLabels.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_THREAD_LABELS)),
   ),
+  /** The title model also picks labels for a new thread that has none. */
+  autoLabelThreads: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(true))),
   /** Beta: guest links for this machine's threads. Off refuses new links and pauses existing ones. */
   guestSharingEnabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   /**
@@ -1663,6 +1665,7 @@ export const ServerSettingsPatch = Schema.Struct({
   hiddenThreadTags: Schema.optionalKey(Schema.Array(Schema.String)),
   hideTaggedThreads: Schema.optionalKey(Schema.Boolean),
   threadLabels: Schema.optionalKey(Schema.Array(ThreadLabel)),
+  autoLabelThreads: Schema.optionalKey(Schema.Boolean),
   guestSharingEnabled: Schema.optionalKey(Schema.Boolean),
   linkedEnvironmentsEnabled: Schema.optionalKey(Schema.Boolean),
   backgroundActivity: Schema.optionalKey(

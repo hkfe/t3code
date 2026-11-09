@@ -394,6 +394,28 @@ it.layer(layerCodexTextGenerationTest)("CodexTextGeneration", (it) => {
     ),
   );
 
+  it.effect("returns offered labels with the title and drops unknown ones", () =>
+    withFakeCodexEnv(
+      {
+        output: JSON.stringify({ title: "Fix Save Crash", labels: ["bug", "made-up", "perf"] }),
+      },
+      (textGeneration) =>
+        Effect.gen(function* () {
+          expect(
+            yield* textGeneration.generateThreadTitle({
+              cwd: process.cwd(),
+              message: "The app crashes when I save",
+              labels: [
+                { id: "bug", name: "bug", color: "red" },
+                { id: "perf", name: "perf", color: "orange" },
+              ],
+              modelSelection: DEFAULT_TEST_MODEL_SELECTION,
+            }),
+          ).toEqual({ title: "Fix Save Crash", labels: ["bug", "perf"] });
+        }),
+    ),
+  );
+
   it.effect("resolves persisted attachment ids to files for codex image inputs", () =>
     withFakeCodexEnv(
       {

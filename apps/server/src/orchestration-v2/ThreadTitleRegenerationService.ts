@@ -9,6 +9,7 @@ import {
   type RunId,
   type ServerSettingsError,
   type ThreadId,
+  threadLabelsOf,
 } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
@@ -68,6 +69,26 @@ const make = Effect.gen(function* () {
       })
       .pipe(Effect.asVoid);
 
+  // Fills only an empty label set; the user or an agent may have labelled during generation.
+  const applyLabels = Effect.fn("ThreadTitleRegenerationService.applyLabels")(function* (
+    threadId: ThreadId,
+    requestId: CommandId,
+    picked: ReadonlyArray<string>,
+  ) {
+    const { thread } = yield* threads.getThreadRecords(threadId, []);
+    const available = (yield* serverSettings.getSettings).threadLabels;
+    if (threadLabelsOf(thread.tags, available).length > 0) return;
+    for (const tag of picked.filter((id) => available.some((label) => label.id === id))) {
+      yield* threads.dispatch({
+        type: "thread.tag.set",
+        commandId: CommandId.make(`${requestId}:label:${tag}`),
+        threadId,
+        tag,
+        tagged: true,
+      });
+    }
+  });
+
   const messagesThroughRun = Effect.fn("ThreadTitleRegenerationService.messagesThroughRun")(
     function* (threadId: ThreadId, runId: RunId) {
       const source = yield* threads.getThreadRecords(threadId, ["messages", "runs"], {
@@ -112,7 +133,11 @@ const make = Effect.gen(function* () {
   )(function* (input) {
     const outcome:
       | { readonly type: "stale" }
-      | { readonly type: "complete"; readonly title?: string } = yield* Effect.gen(function* () {
+      | {
+          readonly type: "complete";
+          readonly title?: string;
+          readonly labels?: ReadonlyArray<string> | undefined;
+        } = yield* Effect.gen(function* () {
       const projection = yield* threads.getThreadRecords(
         input.threadId,
         ["messages"],
@@ -167,6 +192,11 @@ const make = Effect.gen(function* () {
       const worktreeExists =
         worktreePath !== null &&
         (yield* fileSystem.exists(worktreePath).pipe(Effect.orElseSucceed(() => false)));
+      const offerLabels =
+        input.kind.type === "initial" &&
+        settings.autoLabelThreads &&
+        settings.threadLabels.length > 0 &&
+        threadLabelsOf(projection.thread.tags, settings.threadLabels).length === 0;
       const result = yield* textGeneration.generateThreadTitle({
         cwd: worktreeExists ? worktreePath : project.value.workspaceRoot,
         message: context.message,
@@ -174,13 +204,15 @@ const make = Effect.gen(function* () {
         ...(input.kind.type === "regenerate" ? { previousTitle: projection.thread.title } : {}),
         ...(inherited === undefined ? {} : { forkSource: inherited }),
         instructions: settings.threadTitleInstructions,
+        ...(offerLabels ? { labels: settings.threadLabels } : {}),
         modelSelection: settings.textGenerationModelSelection,
       });
       const generatedTitle = result.title.trim();
+      const labels = offerLabels ? result.labels : undefined;
       return generatedTitle === "New thread" ||
         (input.kind.type === "regenerate" && generatedTitle === projection.thread.title.trim())
-        ? { type: "complete" as const }
-        : { type: "complete" as const, title: result.title };
+        ? { type: "complete" as const, labels }
+        : { type: "complete" as const, title: result.title, labels };
     }).pipe(
       Effect.retry({
         times: input.kind.type === "initial" ? 2 : 0,
@@ -204,6 +236,18 @@ const make = Effect.gen(function* () {
       ...input,
       ...(outcome.title === undefined ? {} : { title: outcome.title }),
     });
+    if (outcome.labels?.length) {
+      yield* applyLabels(input.threadId, input.requestId, outcome.labels).pipe(
+        Effect.catchCause((cause) =>
+          Cause.hasInterruptsOnly(cause)
+            ? Effect.interrupt
+            : Effect.logWarning("Thread auto-labelling failed", {
+                threadId: input.threadId,
+                cause,
+              }),
+        ),
+      );
+    }
   });
 
   return ThreadTitleRegenerationService.of({ execute });

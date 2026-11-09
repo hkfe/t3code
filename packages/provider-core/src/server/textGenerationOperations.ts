@@ -12,6 +12,7 @@ import {
   buildPrContentPrompt,
   buildReviewGuidePrompt,
   buildThreadTitlePrompt,
+  pickThreadLabels,
 } from "./textGenerationPrompts.ts";
 import {
   sanitizeCommitSubject,
@@ -147,11 +148,14 @@ export function fromRunner(name: string, run: Runner): ProviderTextGeneration {
         linkedContext: input.linkedContext,
         attachments: input.attachments,
         instructions: input.instructions,
+        labels: input.labels,
       }),
     });
+    const labels = pickThreadLabels("labels" in generated && generated.labels, input.labels);
     return {
       title: sanitizeThreadTitle(generated.title),
       ...(generated.needsRefinement ? { needsRefinement: true } : {}),
+      ...(labels.length > 0 ? { labels } : {}),
     };
   });
 

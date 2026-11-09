@@ -4,6 +4,7 @@ import type {
   ModelSelection,
   PullRequestReviewGuide,
   TextGenerationError,
+  ThreadLabel,
 } from "@t3tools/contracts";
 import type * as Effect from "effect/Effect";
 
@@ -64,12 +65,15 @@ export interface ThreadTitleGenerationInput {
   forkSource?: ThreadTitleForkSource | undefined;
   attachments?: ReadonlyArray<ChatAttachment> | undefined;
   instructions?: string | undefined;
+  labels?: ReadonlyArray<ThreadLabel> | undefined;
   modelSelection: ModelSelection;
 }
 
 export interface ThreadTitleGenerationResult {
   title: string;
   needsRefinement?: boolean | undefined;
+  /** Ids from the offered labels, at most 3. */
+  labels?: ReadonlyArray<string> | undefined;
 }
 
 export interface ReviewGuideStackLayer {

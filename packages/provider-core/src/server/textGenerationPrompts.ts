@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema";
 import * as Effect from "effect/Effect";
 import { limitTitleMessage } from "./threadTitleContext.ts";
-import type { BranchNamingOptions, ChatAttachment } from "@t3tools/contracts";
+import type { BranchNamingOptions, ChatAttachment, ThreadLabel } from "@t3tools/contracts";
 
 import { limitSection } from "./textGenerationUtils.ts";
 import type { ReviewGuideStackLayer } from "./textGeneration.ts";
@@ -353,6 +353,8 @@ export interface ThreadTitlePromptInput {
   forkSource?: ThreadTitleForkSource | undefined;
   attachments?: ReadonlyArray<ChatAttachment> | undefined;
   instructions?: string | undefined;
+  /** Labels the model may pick for the thread; none skips the labels key. */
+  labels?: ReadonlyArray<ThreadLabel> | undefined;
 }
 
 /** The thread a fork branched from, and its conversation up to the fork point. */
@@ -475,10 +477,48 @@ export function buildThreadTitlePrompt(input: ThreadTitlePromptInput) {
       input.forkSource === undefined ? "Thread contents" : "Thread contents after the fork";
     prompt = `${regenerateThreadTitlePrompt(input.previousTitle)}${forkSourceSection(input.forkSource)}\n\n${label}:\n${message}${threadTitlePromptSuffix(input)}`;
   }
-  const outputSchema = Schema.Struct({
+  const titleFields = {
     title: Schema.String,
     needsRefinement: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
-  });
+  };
+  if (!input.labels?.length) {
+    return { prompt, outputSchema: Schema.Struct(titleFields) };
+  }
+  const labelLines = input.labels.map(
+    (label) => `- ${JSON.stringify(label.id)}: ${JSON.stringify(label.name)}`,
+  );
+  return {
+    prompt: `${prompt}\n\n${THREAD_LABELS_PROMPT}\n${labelLines.join("\n")}`,
+    outputSchema: Schema.Struct({
+      ...titleFields,
+      // A bad labels value costs the labels, never the title.
+      labels: Schema.Array(Schema.String).pipe(
+        Schema.catchDecoding(() => Effect.succeedSome([])),
+        Schema.withDecodingDefault(Effect.succeed([])),
+      ),
+    }),
+  };
+}
 
-  return { prompt, outputSchema };
+const THREAD_LABELS_PROMPT = `Also return the key labels: an array of 0 to 3 label ids for this thread, chosen only from the list below.
+Pick a label only when it clearly fits the subject. Return an empty array when none fit.
+Labels (id: name):`;
+
+const MAX_PICKED_THREAD_LABELS = 3;
+
+/** Maps the model's picks to offered label ids, by id or case-insensitive name. Others drop. */
+export function pickThreadLabels(
+  picked: unknown,
+  offered: ReadonlyArray<ThreadLabel> | undefined,
+): ReadonlyArray<string> {
+  const ids: string[] = [];
+  for (const raw of Array.isArray(picked) ? picked : []) {
+    if (typeof raw !== "string") continue;
+    const wanted = raw.trim();
+    const label =
+      offered?.find((candidate) => candidate.id === wanted) ??
+      offered?.find((candidate) => candidate.name.toLowerCase() === wanted.toLowerCase());
+    if (label !== undefined && !ids.includes(label.id)) ids.push(label.id);
+  }
+  return ids.slice(0, MAX_PICKED_THREAD_LABELS);
 }

@@ -51,6 +51,7 @@ const adapter = {
 function makeHarness(
   options: {
     readonly generateTitle?: TextGeneration.TextGeneration["Service"]["generateThreadTitle"];
+    readonly settings?: Parameters<typeof ServerSettings.layerTest>[0];
   } = {},
 ) {
   const layerDatabase = SqlitePersistence.layerMemory;
@@ -60,7 +61,7 @@ function makeHarness(
     layerRegistry,
     { databaseLayer: layerDatabase, runEffectWorker: false },
   );
-  const layerServerSettings = ServerSettings.layerTest({});
+  const layerServerSettings = ServerSettings.layerTest(options.settings ?? {});
   const layerThreadManagement = ThreadManagement.layer.pipe(
     Layer.provide(layerOrchestrator),
     Layer.provide(layerServerSettings),
@@ -541,6 +542,60 @@ describe("ThreadTitleRegenerationService", () => {
         assert.equal(projection.thread.title, "Seed title");
         assert.isNotOk(projection.thread.titleRegeneration);
       }).pipe(Effect.provide(harness.layer));
+    }),
+  );
+
+  it.effect("auto-labels only an empty label set, keeping other tags", () =>
+    Effect.gen(function* () {
+      const cases = [
+        { name: "fills", tags: ["pinned-note"], expected: ["pinned-note", "bug"], offered: true },
+        { name: "keeps", tags: ["feature"], expected: ["feature"], offered: false },
+        {
+          name: "off",
+          tags: [],
+          expected: [],
+          offered: false,
+          settings: { autoLabelThreads: false },
+        },
+        { name: "empty", tags: [], expected: [], offered: false, settings: { threadLabels: [] } },
+      ];
+      for (const testCase of cases) {
+        const harness = makeHarness({
+          generateTitle: () => Effect.succeed({ title: "Generated title", labels: ["bug"] }),
+          ...(testCase.settings ? { settings: testCase.settings } : {}),
+        });
+        yield* Effect.gen(function* () {
+          const threads = yield* ThreadManagement.ThreadManagementService;
+          const service = yield* ThreadTitleRegeneration.ThreadTitleRegenerationService;
+          const threadId = yield* createThread({
+            command: `label:${testCase.name}:create`,
+            thread: `label:${testCase.name}`,
+          });
+          for (const tag of testCase.tags) {
+            yield* threads.dispatch({
+              type: "thread.tag.set",
+              commandId: CommandId.make(`label:${testCase.name}:tag:${tag}`),
+              threadId,
+              tag,
+              tagged: true,
+            });
+          }
+          const command = `label:${testCase.name}:message`;
+          yield* dispatchUserMessage({ command, threadId, text: "Fix the crash on save" });
+          const requestId = yield* armRegeneration({
+            command: `label:${testCase.name}:title`,
+            threadId,
+          });
+          const messageId = MessageId.make(`${command}:message`);
+          yield* service.execute({ threadId, requestId, kind: { type: "initial", messageId } });
+
+          const offered = harness.generateThreadTitle.mock.calls[0]?.[0]?.labels;
+          assert.equal(offered !== undefined, testCase.offered, testCase.name);
+          const projection = yield* threads.getThreadProjection(threadId);
+          assert.equal(projection.thread.title, "Generated title");
+          assert.deepEqual(projection.thread.tags ?? [], testCase.expected, testCase.name);
+        }).pipe(Effect.provide(harness.layer));
+      }
     }),
   );
 });
