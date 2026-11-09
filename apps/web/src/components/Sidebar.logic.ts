@@ -68,9 +68,13 @@ export function resolveSidebarRowAccessibility(input: {
   readonly statusLabel: string | null;
   readonly projectDisplayName: string | null;
   readonly isActive: boolean;
+  readonly labelNames?: ReadonlyArray<string>;
 }): { readonly label: string; readonly current: "page" | undefined } {
+  const labels = input.labelNames?.length ? `labels ${input.labelNames.join(", ")}` : null;
   return {
-    label: [input.title, input.statusLabel, input.projectDisplayName].filter(Boolean).join(", "),
+    label: [input.title, input.statusLabel, input.projectDisplayName, labels]
+      .filter(Boolean)
+      .join(", "),
     current: input.isActive ? "page" : undefined,
   };
 }

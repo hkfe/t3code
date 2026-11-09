@@ -34,6 +34,7 @@ import {
   useProjects,
 } from "../state/entities";
 import { usePrimaryEnvironmentId } from "../state/environments";
+import { resolveThreadLabelMenu } from "../components/threadLabelMenu";
 import { readLocalApi } from "../localApi";
 import { configuredHostedAppUrl } from "../hostedPairing";
 import {
@@ -91,6 +92,9 @@ export function useThreadActionMenu(input: {
   const updateThreadMetadata = useOrchestrationCommand(threadEnvironment.updateMetadata, {
     reportFailure: false,
   });
+  const setThreadTag = useOrchestrationCommand(threadEnvironment.setTag, {
+    reportFailure: false,
+  });
   const handleNewThread = useNewThreadHandler();
   const confirmThreadDelete = useClientSettings((s) => s.confirmThreadDelete);
   const confirmThreadArchive = useClientSettings((s) => s.confirmThreadArchive);
@@ -133,6 +137,8 @@ export function useThreadActionMenu(input: {
       };
       const isRegeneratingTitle = thread.titleRegeneration != null;
       const snoozePresets = resolveSnoozePresets(now, timestampFormat, threadRef.environmentId);
+      const tags = thread.tags ?? [];
+      const labels = resolveThreadLabelMenu(threadRef.environmentId, tags);
       const items = buildThreadActionMenuItems({
         canOperate: readEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope),
         canFind: onFind !== undefined,
@@ -147,6 +153,7 @@ export function useThreadActionMenu(input: {
         isRunning: !threadRuntimeCanArchive(thread.runtime),
         supports,
         snoozePresets,
+        labels,
         canShareWithGuest,
         canTurnIntoProject: canTurnThreadIntoProject(threadRef),
       });
@@ -189,6 +196,16 @@ export function useThreadActionMenu(input: {
           failureToast(title, squashAtomCommandFailure(result));
         }
       };
+      if (action.startsWith("label:")) {
+        const tag = action.slice("label:".length);
+        await reportFailure("Failed to update labels", () =>
+          setThreadTag({
+            environmentId: threadRef.environmentId,
+            input: { threadId: threadRef.threadId, tag, tagged: !tags.includes(tag) },
+          }),
+        );
+        return;
+      }
       switch (action) {
         case "find":
           onFind?.(threadRef);

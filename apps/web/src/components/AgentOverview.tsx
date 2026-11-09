@@ -10,6 +10,7 @@ import { useProjects, useQuietThreadShells } from "../state/entities";
 import { buildThreadRouteParams } from "../threadRoutes";
 import { formatElapsedDurationLabel, formatRelativeTimeLabel } from "../timestampFormat";
 import { ProjectFavicon } from "./ProjectFavicon";
+import { ThreadLabelPills } from "./ThreadLabelPills";
 import {
   resolveSidebarThreadStatus,
   resolveWorkingStartedAt,
@@ -214,6 +215,12 @@ export function AgentOverview() {
                     <span className="line-clamp-2 text-sm leading-snug font-semibold text-foreground">
                       {shell.title}
                     </span>
+                    <ThreadLabelPills
+                      environmentId={shell.environmentId}
+                      tags={shell.tags}
+                      max={4}
+                      className="-mt-1"
+                    />
                     {shell.branch ? (
                       <span className="flex min-w-0 items-center gap-1 font-mono text-3xs text-muted-foreground">
                         <GitBranch className="size-3 shrink-0" />

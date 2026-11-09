@@ -81,6 +81,7 @@ const layerThreadToolkit = McpHttpServer.layerThreadToolkit.pipe(
   Layer.provide(Layer.mock(PeerForwarding.PeerForwarding)({})),
   Layer.provide(Layer.mock(PeerLinkRequests.PeerLinkRequests)({})),
   Layer.provide(Layer.mock(PeerLinks.PeerLinks)({})),
+  Layer.provide(ServerSettings.layerTest()),
 );
 
 const threadId = ThreadId.make("mcp-core-thread");
@@ -391,6 +392,60 @@ it.effect("rejects an unknown organize target instead of archiving the calling t
               dispatched.push(command);
               return Effect.succeed({ sequence: 1 } as never);
             },
+          }),
+        ),
+      ),
+    ),
+  );
+});
+
+it.effect("sets thread labels from the settings list and rejects unknown labels", () => {
+  const dispatched: Array<unknown> = [];
+  const shell = { ...McpToolAccessTestkit.liveThreadShell(threadId), tags: ["bug", "private"] };
+  return Effect.gen(function* () {
+    const server = yield* McpServer.McpServer;
+    const call = (args: Record<string, unknown>) =>
+      server
+        .callTool({ name: "t3_thread_organize", arguments: args })
+        .pipe(
+          Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
+          Effect.provideService(McpSchema.McpServerClient, client),
+        );
+    yield* call({ action: "label", labels: ["Feature"] });
+    expect(dispatched).toMatchObject([
+      { type: "thread.tag.set", threadId, tag: "bug", tagged: false },
+      { type: "thread.tag.set", threadId, tag: "feature", tagged: true },
+    ]);
+    dispatched.length = 0;
+    const unchanged = yield* call({ action: "label", labels: ["bug"] });
+    expect(dispatched).toEqual([]);
+    expect(unchanged.structuredContent).toEqual({ sequence: 41 });
+    expect(declaredFailure(yield* call({ action: "label", labels: ["private"] }))).toMatchObject({
+      code: "invalid_request",
+      message: expect.stringContaining('Unknown label "private". Use one of: bug, feature'),
+    });
+    expect(dispatched).toEqual([]);
+  }).pipe(
+    Effect.provide(
+      layerThreadToolkit.pipe(
+        Layer.provideMerge(McpHttpServer.layerInProcessMcpServer),
+        Layer.provide(NodeCrypto.layer),
+        Layer.provide(
+          Layer.mock(ThreadManagement.ThreadManagementService)({
+            getThreadShell: () => Effect.succeed(shell),
+            getProjectThreadRecords: () =>
+              Effect.succeed(McpToolAccessTestkit.idleThreadProjection(shell)),
+            dispatch: (command) => {
+              dispatched.push(command);
+              return Effect.succeed({ sequence: 1 } as never);
+            },
+            getShellSnapshot: () =>
+              Effect.succeed({
+                schemaVersion: 1,
+                snapshotSequence: 41,
+                threads: [],
+                archivedThreads: [],
+              }),
           }),
         ),
       ),
@@ -772,6 +827,7 @@ it.effect.each([
         Layer.provide(Layer.mock(PeerForwarding.PeerForwarding)({})),
         Layer.provide(Layer.mock(PeerLinkRequests.PeerLinkRequests)({})),
         Layer.provide(Layer.mock(PeerLinks.PeerLinks)({})),
+        Layer.provide(ServerSettings.layerTest()),
         Layer.provide(
           Layer.mock(ScheduledTaskService.ScheduledTaskService)({
             list: () => Effect.succeed({ tasks }),

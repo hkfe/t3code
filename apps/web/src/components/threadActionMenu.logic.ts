@@ -17,6 +17,8 @@ export type ThreadActionMenuId =
   | "snooze"
   | `snooze:${string}`
   | "unsnooze"
+  | "labels"
+  | `label:${string}`
   | "rename"
   | "regenerate-title"
   | "mark-unread"
@@ -92,6 +94,12 @@ export interface ThreadActionMenuState {
     readonly titleRegeneration: boolean;
   };
   readonly snoozePresets: ReadonlyArray<SnoozePreset>;
+  /** The environment's label list, each checked when the thread has it. */
+  readonly labels?: ReadonlyArray<{
+    readonly id: string;
+    readonly name: string;
+    readonly checked: boolean;
+  }>;
   /** Guest links need their own grant, so the caller checks it instead of `canOperate`. */
   readonly canShareWithGuest?: boolean;
   /** A No project thread with its own folder, on a server that can promote it. */
@@ -167,6 +175,20 @@ export function buildThreadActionMenuItems(
                   },
                 ],
               },
+        ]
+      : []),
+    ...(state.labels?.length
+      ? [
+          {
+            id: "labels" as const,
+            label: "Labels",
+            icon: "tag",
+            children: state.labels.map((label) => ({
+              id: `label:${label.id}` as const,
+              label: label.name,
+              checked: label.checked,
+            })),
+          },
         ]
       : []),
     { id: "rename", label: "Rename thread", icon: "pencil", separatorBefore: true },

@@ -6,12 +6,14 @@ import {
   type RunId,
   OrchestratorMcpFailure,
   type OrchestrationV2Command,
+  type ThreadLabel,
 } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import { modelSelectionCommandType } from "@t3tools/shared/model";
 
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 import * as McpToolAccess from "../../McpToolAccess.ts";
+import * as ServerSettings from "../../../serverSettings.ts";
 import {
   dispatchFailure,
   newCommandId,
@@ -86,6 +88,28 @@ const required = <A>(value: A | undefined, name: string) =>
         }),
       )
     : Effect.succeed(value);
+/** Matches an id exactly, else a name ignoring case. */
+const resolveLabelIds = (inputs: ReadonlyArray<string>, available: ReadonlyArray<ThreadLabel>) => {
+  const ids: string[] = [];
+  for (const input of inputs) {
+    const wanted = input.trim();
+    const label =
+      available.find((candidate) => candidate.id === wanted) ??
+      available.find((candidate) => candidate.name.toLowerCase() === wanted.toLowerCase());
+    if (label === undefined)
+      return Effect.fail(
+        new OrchestratorMcpFailure({
+          code: "invalid_request",
+          message:
+            available.length === 0
+              ? "No thread labels are set up in T3 settings."
+              : `Unknown label "${input}". Use one of: ${available.map((candidate) => candidate.id).join(", ")}.`,
+        }),
+      );
+    if (!ids.includes(label.id)) ids.push(label.id);
+  }
+  return Effect.succeed(ids);
+};
 const writesThread = <P extends { readonly threadId?: ThreadId | undefined }, A, E, R>(
   handle: (params: P) => Effect.Effect<A, E, R>,
 ) => McpToolAccess.writesThreads((params: P) => [params.threadId], handle);
@@ -340,6 +364,40 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
         return yield* threads
           .settleThread({ ...common, byOwnAgent: caller?.id === projection.thread.id })
           .pipe(Effect.mapError(dispatchFailure));
+      }
+      if (input.action === "label") {
+        const settings = yield* (yield* ServerSettings.ServerSettingsService).getSettings.pipe(
+          Effect.mapError(unavailable),
+        );
+        const available = settings.threadLabels;
+        const next = yield* resolveLabelIds(yield* required(input.labels, "labels"), available);
+        // Only labels from the settings list change; other thread tags stay.
+        const current = (projection.thread.tags ?? []).filter((tag) =>
+          available.some((label) => label.id === tag),
+        );
+        const changes = [
+          ...current.filter((id) => !next.includes(id)).map((tag) => ({ tag, tagged: false })),
+          ...next.filter((id) => !current.includes(id)).map((tag) => ({ tag, tagged: true })),
+        ];
+        // Nothing to change still answers with the latest committed sequence, as a dispatch would.
+        let sequence =
+          changes.length === 0
+            ? (yield* threads
+                .getShellSnapshot({ threadIds: [projection.thread.id] })
+                .pipe(Effect.mapError(unavailable))).snapshotSequence
+            : 0;
+        for (const change of changes) {
+          const result = yield* threads
+            .dispatch({
+              ...common,
+              commandId: yield* newCommandId(),
+              type: "thread.tag.set",
+              ...change,
+            })
+            .pipe(Effect.mapError(dispatchFailure));
+          sequence = result.sequence;
+        }
+        return { sequence };
       }
       let command: OrchestrationV2Command;
       switch (input.action) {

@@ -120,6 +120,7 @@ import { Kbd } from "../ui/kbd";
 import { Menu, MenuItem, MenuPopup, MenuSeparator, MenuShortcut, MenuTrigger } from "../ui/menu";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { MiddleTruncate } from "../ui/middle-truncate";
+import { ThreadLabelPills, useThreadLabels } from "../ThreadLabelPills";
 import { useThreadHasUnsentDraft } from "../../composerDraftStore";
 
 // The fields thread rows show. Provider status pushes refresh `checkedAt`,
@@ -1012,11 +1013,13 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
       </span>
     ) : null;
 
+  const threadLabels = useThreadLabels(thread.environmentId, thread.tags);
   const accessibility = resolveSidebarRowAccessibility({
     title: thread.title,
     statusLabel: topStatus?.label ?? null,
     projectDisplayName: props.projectDisplayName,
     isActive: props.isActive,
+    labelNames: threadLabels.map((label) => label.name),
   });
 
   const title = isRenaming ? (
@@ -1264,6 +1267,13 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
               )}
               {draftIndicator}
               {title}
+              {isRenaming ? null : (
+                <ThreadLabelPills
+                  environmentId={thread.environmentId}
+                  tags={thread.tags}
+                  max={multiline ? 2 : 1}
+                />
+              )}
               {multiline ? titleLineIcons : null}
               {pinIndicator}
               {multiline ? null : terminalStatusIcon}
@@ -1589,6 +1599,9 @@ const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThreadRowP
             </div>
             <div className="mt-1 flex min-w-0 items-center gap-1.5">
               {title}
+              {isRenaming ? null : (
+                <ThreadLabelPills environmentId={thread.environmentId} tags={thread.tags} />
+              )}
               {isRegeneratingTitle ? (
                 <span role="status" className="sr-only">
                   Regenerating title

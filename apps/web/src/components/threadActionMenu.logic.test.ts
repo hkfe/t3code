@@ -35,12 +35,17 @@ describe("buildThreadActionMenuItems", () => {
         isPinned: reversed,
         isSettled: reversed,
         isSnoozed: reversed,
+        labels: [
+          { id: "bug", name: "bug", checked: reversed },
+          { id: "ui", name: "ui", checked: !reversed },
+        ],
       });
       const expected = reversed
         ? [
             "unpin",
             "unsettle",
             "unsnooze",
+            "labels",
             "rename",
             "regenerate-title",
             "auto-settle",
@@ -51,6 +56,7 @@ describe("buildThreadActionMenuItems", () => {
             "pin",
             "settle",
             "snooze",
+            "labels",
             "rename",
             "regenerate-title",
             "auto-settle",
@@ -58,6 +64,10 @@ describe("buildThreadActionMenuItems", () => {
             "delete",
           ];
       expect(items.filter((item) => item.disabled).map((item) => item.id)).toEqual(expected);
+      expect(items.find((item) => item.id === "labels")?.children).toEqual([
+        { id: "label:bug", label: "bug", checked: reversed, disabled: true },
+        { id: "label:ui", label: "ui", checked: !reversed, disabled: true },
+      ]);
       expect(
         items.find((item) => item.id === "snooze")?.children?.every((child) => child.disabled) ??
           true,

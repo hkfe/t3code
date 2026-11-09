@@ -148,6 +148,21 @@ it("drops a hand-edited non-string hidden tag and keeps the rest of the settings
   expect(settings.hideTaggedThreads).toBe(true);
 });
 
+it("defaults thread labels and drops bad or repeated hand-edited labels", () => {
+  expect(decodeServerSettings({}).threadLabels.map((label) => label.id)).toContain("bug");
+  const settings = decodeServerSettings({
+    threadLabels: [
+      { id: "bug", name: "Bug", color: "red" },
+      { id: "bug", name: "Again", color: "blue" },
+      { id: " bug ", name: "Spaced", color: "green" },
+      { id: "x", name: "X", color: "#ff0000" },
+      "loose",
+    ],
+  });
+  expect(settings.threadLabels).toEqual([{ id: "bug", name: "Bug", color: "red" }]);
+  expect(decodeServerSettings({ threadLabels: [] }).threadLabels).toEqual([]);
+});
+
 describe("ServerSettings secret providers", () => {
   const onePassword = (account: string) => ({
     kind: "one_password",
