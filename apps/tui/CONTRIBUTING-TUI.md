@@ -10,7 +10,8 @@ Read the repo's `AGENTS.md` first. Everything there applies here.
 
 ```
 apps/tui/src/
-  bin.tsx                 CLI entry: args, `pair`, render(<App/>). Rarely changes.
+  bin.tsx                 CLI entry: parses args (cli.ts), then loads run.tsx. Rarely changes.
+  run.tsx                 Pairs, renders <App/>, restores the terminal on exit and signals.
   app/                    The shell. Shared: change only for a cross-feature need.
     App.tsx               Regions (sidebar, main, panel), overlay slot, status bar, resize.
     feature.ts            The TuiFeature contract (types only).

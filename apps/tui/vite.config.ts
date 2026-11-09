@@ -14,9 +14,15 @@ export default mergeConfig(
       entry: ["src/bin.tsx"],
       outDir: "dist",
       sourcemap: true,
+      inputOptions: { checks: { moduleLevelDirective: false } },
       clean: true,
-      // Workspace packages ship TypeScript sources, so they must be bundled.
-      deps: { alwaysBundle: [/^@t3tools\//] },
+      minify: true,
+      // One self-contained file: `t3-tui` runs from a symlink without node_modules.
+      // Optional native or dev-only peers stay out; their importers fall back without them.
+      deps: {
+        alwaysBundle: [/./],
+        neverBundle: ["react-devtools-core", "bufferutil", "utf-8-validate"],
+      },
       banner: { js: "#!/usr/bin/env node\n" },
     },
   }),

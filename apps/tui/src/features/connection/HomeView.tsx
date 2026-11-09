@@ -7,6 +7,7 @@ import { useContext, useState } from "react";
 
 import type { TuiViewProps } from "../../app/feature.ts";
 import { connectPairingUrl, environmentCatalog } from "../../state/catalog.ts";
+import { serverHintAtom } from "../../state/serverHint.ts";
 import { theme } from "../../theme/theme.ts";
 
 type PairingState =
@@ -18,6 +19,7 @@ type PairingState =
 export function HomeView({ focused }: TuiViewProps) {
   const registry = useContext(RegistryContext);
   const catalog = useAtomValue(environmentCatalog.catalogValueAtom);
+  const serverHint = useAtomValue(serverHintAtom);
   const [pairing, setPairing] = useState<PairingState>({ status: "idle" });
   const unpaired = catalog.isReady && catalog.entries.size === 0;
 
@@ -48,6 +50,11 @@ export function HomeView({ focused }: TuiViewProps) {
       <Text color={theme.text} bold>
         Pair with a T3 Code server
       </Text>
+      {serverHint !== null && (
+        <Text color={theme.text}>
+          Server to pair with: <Text color={theme.accent}>{serverHint}</Text>
+        </Text>
+      )}
       <Text color={theme.textMuted}>
         On the server, open Settings › Connections and create a pairing link, or run `t3 pair`.
       </Text>
