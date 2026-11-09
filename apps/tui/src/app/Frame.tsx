@@ -1,7 +1,7 @@
 import { Box, Text } from "ink";
 import type { ReactNode } from "react";
 
-import { theme } from "../theme/theme.ts";
+import { colorMode, theme } from "../theme/theme.ts";
 
 /** Rows and columns a Frame takes around its children: border, plus 1 column of padding. */
 export const FRAME_X = 4;
@@ -15,6 +15,7 @@ function Rule(props: {
   readonly bold: boolean;
   readonly align: "left" | "right";
   readonly color: string;
+  readonly heavy: boolean;
 }) {
   const label = props.label ? (
     <Box flexShrink={1} minWidth={0}>
@@ -27,7 +28,7 @@ function Rule(props: {
   // Basis 0: the line takes only the room the label leaves.
   const line = (grow: number) => (
     <Box flexGrow={grow} flexBasis={0} minWidth={1} height={1} overflow="hidden">
-      <Text color={props.color}>{"─".repeat(400)}</Text>
+      <Text color={props.color}>{(props.heavy ? "━" : "─").repeat(400)}</Text>
     </Box>
   );
   return (
@@ -64,6 +65,8 @@ export function Frame(props: {
   readonly children?: ReactNode;
 }) {
   const color = props.focused ? theme.borderFocused : theme.border;
+  // Without color, a heavy border is what shows focus.
+  const heavy = props.focused && colorMode === "none";
   return (
     <Box
       flexDirection="column"
@@ -74,8 +77,9 @@ export function Frame(props: {
       {...(props.height === undefined ? {} : { height: props.height })}
     >
       <Rule
-        left="╭"
-        right="╮"
+        left={heavy ? "┏" : "╭"}
+        right={heavy ? "┓" : "╮"}
+        heavy={heavy}
         label={props.title}
         labelColor={props.focused ? theme.accent : theme.textMuted}
         bold
@@ -85,7 +89,7 @@ export function Frame(props: {
       <Box
         flexDirection="column"
         flexGrow={1}
-        borderStyle="round"
+        borderStyle={heavy ? "bold" : "round"}
         borderTop={false}
         borderBottom={false}
         borderColor={color}
@@ -95,8 +99,9 @@ export function Frame(props: {
         {props.children}
       </Box>
       <Rule
-        left="╰"
-        right="╯"
+        left={heavy ? "┗" : "╰"}
+        right={heavy ? "┛" : "╯"}
+        heavy={heavy}
         label={props.hint}
         labelColor={theme.textFaint}
         bold={false}

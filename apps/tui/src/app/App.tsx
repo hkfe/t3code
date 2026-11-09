@@ -185,18 +185,19 @@ function Shell() {
   const bodyHeight = Math.max(FRAME_Y + 1, rows - STATUS_BAR_ROWS - (toast ? 1 : 0) - leader.rows);
   const panel = layout.panel === null ? undefined : registry.panels.get(layout.panel);
   const panes = useAtomValue(panesAtom);
-  // Side regions give way so each side-by-side pane keeps MIN_PANE_WIDTH: the panel (opened last)
-  // first, then the sidebar. A side region too narrow to read hides.
+  // Side regions give way so each side-by-side pane keeps MIN_PANE_WIDTH. The panel takes what
+  // the sidebar's minimum leaves, the sidebar the rest; a side region too narrow to read hides.
+  const minSide = MIN_REGION_WIDTH + FRAME_X;
   let room =
     columns - MIN_PANE_WIDTH * (panes.direction === "row" ? Math.max(1, panes.routes.length) : 1);
-  const fit = (wanted: number) => {
-    const width = Math.min(wanted, room);
-    if (width < MIN_REGION_WIDTH + FRAME_X) return 0;
+  const fit = (wanted: number, reserve: number) => {
+    const width = Math.min(wanted, room - reserve);
+    if (width < minSide) return 0;
     room -= width;
     return width;
   };
-  const panelWidth = panel ? fit(layout.panelWidth) : 0;
-  const sidebarWidth = layout.sidebarVisible ? fit(layout.sidebarWidth) : 0;
+  const panelWidth = panel ? fit(layout.panelWidth, layout.sidebarVisible ? minSide : 0) : 0;
+  const sidebarWidth = layout.sidebarVisible ? fit(layout.sidebarWidth, 0) : 0;
   const mainWidth = columns - sidebarWidth - panelWidth;
   const overlay = useOverlay();
 

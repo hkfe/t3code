@@ -224,7 +224,7 @@ light background (see "Run against a playground server" for headless captures).
 
 **Frames.** Every boxed surface is a `Frame` from `app/Frame.tsx`: round border, 1 column of
 padding, the title in the top edge and key hints in the bottom edge. The focused frame has an accent
-border and title. Overlays are a full-size `Frame` (settings, switcher, overview) or a centered
+border and title (a heavy border without color). Overlays are a full-size `Frame` (settings, switcher, overview) or a centered
 `Modal` (palette, model picker, dialogs). A Frame takes `FRAME_X` columns and `FRAME_Y` rows; size
 the content from those. Cards inside a frame (switcher, overview) use a plain round border, accent
 when selected.
