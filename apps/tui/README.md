@@ -45,4 +45,8 @@ right panel; `ctrl+b` toggles the sidebar; `alt+←` / `alt+→` resize the focu
 `↑`/`↓` or `ctrl+n`/`ctrl+p` move, `enter` runs, `esc` closes. The web app also opens it with
 Cmd+Shift+P, which terminals cannot send.
 
+In the sidebar: `j` / `k` or arrows move, `g` / `G` jump to the top or bottom, `enter` opens a
+thread or folds a section, `h` / `l` (or `←` / `→`, `space`) fold and unfold sections and project
+folders, and `/` filters threads as you type (`escape` clears it).
+
 Building a feature? Read [CONTRIBUTING-TUI.md](./CONTRIBUTING-TUI.md).

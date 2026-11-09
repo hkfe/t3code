@@ -3,14 +3,14 @@ import { commandPaletteFeature } from "./command-palette/index.ts";
 import { connectionFeature } from "./connection/index.ts";
 import { coreFeature } from "./core/index.tsx";
 import { requestsFeature } from "./requests/index.tsx";
+import { sidebarFeature } from "./sidebar/index.ts";
 import { threadViewFeature } from "./thread-view/index.ts";
-import { threadsFeature } from "./threads/index.ts";
 
 /** Every feature, one line each. Earlier features win keybinding ties. */
 export const features: ReadonlyArray<TuiFeature> = [
   coreFeature,
   connectionFeature,
-  threadsFeature,
+  sidebarFeature,
   threadViewFeature,
   commandPaletteFeature,
   requestsFeature,
