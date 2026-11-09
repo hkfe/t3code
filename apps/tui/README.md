@@ -45,6 +45,10 @@ right panel; `ctrl+b` toggles the sidebar; `alt+←` / `alt+→` resize the focu
 `↑`/`↓` or `ctrl+n`/`ctrl+p` move, `enter` runs, `esc` closes. The web app also opens it with
 Cmd+Shift+P, which terminals cannot send.
 
+`ctrl+]` opens the thread switcher: cards for recent threads, the open one first. `tab` / `shift+tab`
+or arrows move, `enter` opens, `1`-`9` open a card by its number, `esc` closes. The web app uses
+Option+Tab, which terminals do not send reliably.
+
 In the sidebar: `j` / `k` or arrows move, `g` / `G` jump to the top or bottom, `enter` opens a
 thread or folds a section, `h` / `l` (or `←` / `→`, `space`) fold and unfold sections and project
 folders, and `/` filters threads as you type (`escape` clears it).
