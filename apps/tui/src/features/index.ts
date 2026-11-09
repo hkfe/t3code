@@ -4,6 +4,7 @@ import { composerFeature } from "./composer/index.ts";
 import { connectionFeature } from "./connection/index.ts";
 import { coreFeature } from "./core/index.tsx";
 import { requestsFeature } from "./requests/index.tsx";
+import { settingsFeature } from "./settings/index.ts";
 import { sidebarFeature } from "./sidebar/index.ts";
 import { threadActionsFeature } from "./thread-actions/index.ts";
 import { threadViewFeature } from "./thread-view/index.ts";
@@ -18,4 +19,5 @@ export const features: ReadonlyArray<TuiFeature> = [
   requestsFeature,
   threadActionsFeature,
   composerFeature,
+  settingsFeature,
 ];
