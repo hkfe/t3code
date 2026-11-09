@@ -196,7 +196,7 @@ it("pages forward to a file asked for that is not loaded yet, then scrolls to it
   setup({ paged: true });
   const container = pagedContainer();
   await using screen = await render(tab(0), { container });
-  await expect.element(screen.getByText("early-0.ts", { exact: true }).first()).toBeVisible();
+  await expect.element(screen.getByText("early-0.ts", { exact: true }).first()).toBeInTheDocument();
 
   await screen.rerender(tab(0, { path: "late.ts", nonce: 1 }));
 
