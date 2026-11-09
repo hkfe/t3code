@@ -23,7 +23,7 @@ export const THREAD_LABEL_COLOR_CLASS: Record<ThreadLabelColor, string> = {
   pink: "bg-pink-500/12 text-pink-600 dark:text-pink-300",
 };
 
-function useThreadLabels(
+export function useThreadLabels(
   environmentId: EnvironmentId,
   tags: ReadonlyArray<string> | undefined,
 ): ReadonlyArray<ThreadLabel> {
@@ -58,6 +58,7 @@ export function ThreadLabelPills(props: {
   const shown = labels.slice(0, max);
   return (
     <span
+      role="group"
       className={cn("inline-flex min-w-0 shrink items-center gap-1", props.className)}
       aria-label={`Labels: ${labels.map((label) => label.name).join(", ")}`}
     >

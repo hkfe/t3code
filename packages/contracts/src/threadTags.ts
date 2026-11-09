@@ -52,6 +52,8 @@ export const ThreadLabels = Schema.Array(Schema.Unknown).pipe(
       decode: (values) =>
         values
           .filter(isThreadLabel)
+          // `is` sees untrimmed ids, so " bug " and "bug" would both pass and decode alike.
+          .map((label) => ({ ...label, id: label.id.trim() }))
           .filter((label, index, all) => all.findIndex((other) => other.id === label.id) === index)
           .slice(0, MAX_THREAD_LABELS),
       encode: (values) => values,

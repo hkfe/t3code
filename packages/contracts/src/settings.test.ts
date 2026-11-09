@@ -154,6 +154,7 @@ it("defaults thread labels and drops bad or repeated hand-edited labels", () => 
     threadLabels: [
       { id: "bug", name: "Bug", color: "red" },
       { id: "bug", name: "Again", color: "blue" },
+      { id: " bug ", name: "Spaced", color: "green" },
       { id: "x", name: "X", color: "#ff0000" },
       "loose",
     ],

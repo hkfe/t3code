@@ -161,7 +161,7 @@ cannot drag threads, and the Working section is off. Each device keeps its own c
 
 ## Label threads
 
-Labels are small colored tags on a thread. They show in the sidebar, the thread header, and the thread switcher. To add or remove one, right-click a thread and choose **Labels**.
+Labels are small colored tags on a thread. On web and desktop they show in the sidebar, the thread header, and the thread switcher. The mobile app does not show them yet. To add or remove one, right-click a thread and choose **Labels**.
 
 Agents can label their own thread too, but only with labels from your list. Edit the list in **Settings → Threads → Labels**: add, rename, recolor, reorder, or delete labels. Each machine keeps its own list.
 

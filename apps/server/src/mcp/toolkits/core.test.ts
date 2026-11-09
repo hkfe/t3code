@@ -417,6 +417,9 @@ it.effect("sets thread labels from the settings list and rejects unknown labels"
       { type: "thread.tag.set", threadId, tag: "feature", tagged: true },
     ]);
     dispatched.length = 0;
+    const unchanged = yield* call({ action: "label", labels: ["bug"] });
+    expect(dispatched).toEqual([]);
+    expect(unchanged.structuredContent).toEqual({ sequence: 41 });
     expect(declaredFailure(yield* call({ action: "label", labels: ["private"] }))).toMatchObject({
       code: "invalid_request",
       message: expect.stringContaining('Unknown label "private". Use one of: bug, feature'),
@@ -436,6 +439,13 @@ it.effect("sets thread labels from the settings list and rejects unknown labels"
               dispatched.push(command);
               return Effect.succeed({ sequence: 1 } as never);
             },
+            getShellSnapshot: () =>
+              Effect.succeed({
+                schemaVersion: 1,
+                snapshotSequence: 41,
+                threads: [],
+                archivedThreads: [],
+              }),
           }),
         ),
       ),

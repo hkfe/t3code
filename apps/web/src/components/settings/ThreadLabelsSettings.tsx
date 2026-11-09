@@ -6,6 +6,7 @@ import {
   type ThreadLabelColor,
 } from "@t3tools/contracts";
 import * as Equal from "effect/Equal";
+import { useState } from "react";
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon, XIcon } from "lucide-react";
 
 import { cn, randomUUID } from "../../lib/utils";
@@ -14,6 +15,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { SettingResetButton, SettingsRow } from "./settingsLayout";
+import { reconcileSnoozeDraft } from "./SnoozePresetsSettings.logic";
 import { searchableSetting } from "./settingsSearch";
 import {
   useScopedSettings,
@@ -41,10 +43,35 @@ export function ThreadLabelsRow() {
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   const mixed = useScopedSettingsMixed(["threadLabels"]);
-  const labels = settings.threadLabels;
+  const saved = settings.threadLabels;
+  // Edits build on a local draft, so a second edit before the first echo does not undo it.
+  const [labels, setLabels] = useState(saved);
+  // Null forces the next render to adopt the saved value, as after a failed write.
+  const [savedSource, setSavedSource] = useState<ReadonlyArray<ThreadLabel> | null>(saved);
+  const [written, setWritten] = useState<ReadonlyArray<ReadonlyArray<ThreadLabel>>>([]);
+  if (!Equal.equals(savedSource, saved)) {
+    setSavedSource(saved);
+    const reconciled = reconcileSnoozeDraft(written, saved);
+    if (reconciled.adopt) {
+      setWritten([]);
+      setLabels(saved);
+    } else {
+      setWritten(reconciled.pending);
+    }
+  }
   const save = (threadLabels: ReadonlyArray<ThreadLabel>) => {
     if (!mixed && Equal.equals(threadLabels, labels)) return;
-    updateSettings({ threadLabels });
+    setLabels(threadLabels);
+    setWritten((previous) => [...previous, threadLabels]);
+    updateSettings(
+      { threadLabels },
+      {
+        onFailed: () => {
+          setWritten([]);
+          setSavedSource(null);
+        },
+      },
+    );
   };
   const replaceAt = (index: number, next: ThreadLabel) =>
     save(labels.map((label, candidate) => (candidate === index ? next : label)));

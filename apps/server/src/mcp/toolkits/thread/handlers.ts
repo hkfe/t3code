@@ -379,7 +379,13 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
           ...current.filter((id) => !next.includes(id)).map((tag) => ({ tag, tagged: false })),
           ...next.filter((id) => !current.includes(id)).map((tag) => ({ tag, tagged: true })),
         ];
-        let sequence = 0;
+        // Nothing to change still answers with the latest committed sequence, as a dispatch would.
+        let sequence =
+          changes.length === 0
+            ? (yield* threads
+                .getShellSnapshot({ threadIds: [projection.thread.id] })
+                .pipe(Effect.mapError(unavailable))).snapshotSequence
+            : 0;
         for (const change of changes) {
           const result = yield* threads
             .dispatch({
