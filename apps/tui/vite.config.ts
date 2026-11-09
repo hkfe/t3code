@@ -24,6 +24,8 @@ export default mergeConfig(
         neverBundle: ["react-devtools-core", "bufferutil", "utf-8-validate"],
       },
       banner: { js: "#!/usr/bin/env node\n" },
+      // Bundled React and Ink otherwise pick their development builds, several times slower.
+      define: { "process.env.NODE_ENV": JSON.stringify("production") },
     },
   }),
 );

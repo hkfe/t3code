@@ -76,6 +76,8 @@ export async function runTui(options: RunOptions) {
     {
       alternateScreen: true,
       exitOnCtrlC: false,
+      // Rewrites only the lines that changed instead of the whole screen each frame.
+      incrementalRendering: true,
     },
   );
   await instance.waitUntilExit();
