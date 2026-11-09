@@ -201,7 +201,11 @@ describe("DesktopAppIdentity", () => {
         assert.isDefined(runtimeName);
         assert.equal(runtimeName, `T3 Code ${stage}`);
         assert.match(runtimeName.replaceAll(" ", ""), /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/);
-        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, `T3 Code (${stage})`);
+        // The About panel shows the helios title; the build hash is "dev" without git.
+        assert.match(
+          calls.setAboutPanelOptions[0]?.applicationName ?? "",
+          /^T3-Code \(helios - (?:[0-9a-f]{7}|dev)\)$/,
+        );
       }),
       { calls, environment },
     );
