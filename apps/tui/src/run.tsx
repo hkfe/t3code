@@ -14,6 +14,8 @@ import { appAtomRegistry } from "./connection/runtime.ts";
 import { features } from "./features/index.ts";
 import { connectPairingUrl } from "./state/catalog.ts";
 import { serverHintAtom } from "./state/serverHint.ts";
+import { themedStdout } from "./theme/output.ts";
+import { colorMode, unicode } from "./theme/theme.ts";
 
 let instance: Instance | undefined;
 
@@ -76,6 +78,7 @@ export async function runTui(options: RunOptions) {
     {
       alternateScreen: true,
       exitOnCtrlC: false,
+      stdout: themedStdout(process.stdout, { unicode, color: colorMode !== "none" }),
     },
   );
   await instance.waitUntilExit();

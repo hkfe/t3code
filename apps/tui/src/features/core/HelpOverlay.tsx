@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import { useContext, useMemo, useState } from "react";
 
 import type { TuiViewProps } from "../../app/feature.ts";
+import { Frame, FRAME_Y } from "../../app/Frame.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { helpRows } from "../../app/keymap.ts";
 import { isKey } from "../../app/keys.ts";
@@ -10,8 +11,8 @@ import { keyCollisions, useShellRegistry } from "../../app/registry.ts";
 import { theme } from "../../theme/theme.ts";
 import { editText, TextField } from "../thread-actions/ui.tsx";
 
-// Border, query line and hint line.
-const CHROME_ROWS = 4;
+// Frame and query line.
+const CHROME_ROWS = FRAME_Y + 1;
 const KEY_WIDTH = 18;
 const TITLE_WIDTH = 40;
 
@@ -66,13 +67,12 @@ export function HelpOverlay({ width, height }: TuiViewProps) {
     return true;
   });
   return (
-    <Box
-      flexDirection="column"
+    <Frame
+      focused
       width={width}
       height={height}
-      borderStyle="round"
-      borderColor={theme.borderFocused}
-      paddingX={1}
+      title="Keys"
+      hint="type to search · ↑↓ pgup pgdn scroll · esc close"
     >
       <TextField value={query} />
       {issues.map((issue) => (
@@ -106,9 +106,6 @@ export function HelpOverlay({ width, height }: TuiViewProps) {
         )}
         {rows.length === 0 && <Text color={theme.textFaint}>No binding matches.</Text>}
       </Box>
-      <Text color={theme.textFaint} wrap="truncate">
-        type to search · ↑↓ pgup pgdn scroll · esc close
-      </Text>
-    </Box>
+    </Frame>
   );
 }

@@ -386,11 +386,14 @@ function ThreadComposer(props: {
                 .join(" · ")
             : ""}
         </Text>
-        <Text color={theme.textFaint} wrap="truncate">
-          {props.focused && !active
-            ? "enter or i to type"
-            : `${running ? "enter steer · ctrl+s queue" : "enter send · ctrl+j newline"} · ctrl+l model`}
-        </Text>
+        {/* Key hints give way before the model line. */}
+        <Box flexShrink={1000} minWidth={0}>
+          <Text color={theme.textFaint} wrap="truncate">
+            {props.focused && !active
+              ? "enter or i to type"
+              : `${running ? "enter steer · ctrl+s queue" : "enter send · ctrl+j newline"} · ctrl+l model`}
+          </Text>
+        </Box>
       </Box>
     </Box>
   );

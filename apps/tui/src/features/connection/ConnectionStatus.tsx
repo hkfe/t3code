@@ -33,7 +33,7 @@ function EnvironmentStatus(props: {
   const connection = presentConnectionState(state);
   return (
     <Text color={PHASE_COLOR[connection.phase]} wrap="truncate">
-      ● {props.label}: {connectionStatusTitle(connection)}
+      ● {connectionStatusTitle(connection)} · {props.label}
     </Text>
   );
 }

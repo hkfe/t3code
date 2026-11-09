@@ -8,6 +8,7 @@ import { Box, Text } from "ink";
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 import type { TuiViewProps } from "../../app/feature.ts";
+import { Frame, FRAME_X, FRAME_Y } from "../../app/Frame.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { serverEnvironment } from "../../state/settings.ts";
@@ -173,7 +174,8 @@ export function AgentOverview({ width, height }: TuiViewProps) {
 
   const sections = buildOverview(threads, new Date(nowMs).toISOString());
   const entries = sections.flatMap((section) => section.entries);
-  const columns = columnsFor(width);
+  const inner = width - FRAME_X;
+  const columns = columnsFor(inner);
   const rows = gridRows(sections, columns);
   const clamp = (value: number) => Math.min(value, Math.max(0, entries.length - 1));
   const cursor = clamp(selected);
@@ -239,7 +241,7 @@ export function AgentOverview({ width, height }: TuiViewProps) {
                 index={first + offset}
                 selected={first + offset === cursor}
                 project={projectTitle(entry)}
-                width={Math.floor(width / columns)}
+                width={Math.floor(inner / columns)}
                 nowMs={nowMs}
               />
             ))}
@@ -249,7 +251,8 @@ export function AgentOverview({ width, height }: TuiViewProps) {
       index += cards.length;
     }
   }
-  const bodyHeight = Math.max(1, height - 2);
+  // Frame and the blank line under its title.
+  const bodyHeight = Math.max(1, height - FRAME_Y - 1);
   let top = 0;
   const linesThrough = (from: number) =>
     blocks.slice(from, cursorBlock + 1).reduce((sum, block) => sum + block.height, 0);
@@ -265,20 +268,20 @@ export function AgentOverview({ width, height }: TuiViewProps) {
   const needs = sections.find((s) => s.group === "needs")?.entries.length ?? 0;
   const working = sections.find((s) => s.group === "working")?.entries.length ?? 0;
   return (
-    <Box flexDirection="column" width={width} height={height}>
-      <Box>
-        <Text bold color={theme.text}>
-          Agents{"  "}
-        </Text>
-        <Text color={needs > 0 ? theme.warning : theme.textMuted}>{needs} need you</Text>
-        <Text color={theme.textMuted}> · {working} working</Text>
-        <Box flexGrow={1} />
-        <Text wrap="truncate" color={theme.textFaint}>
-          ←↓↑→/hjkl move · enter or 1-9 open · esc close
-        </Text>
-      </Box>
+    <Frame
+      focused
+      width={width}
+      height={height}
+      title={
+        <>
+          Agents <Text color={needs > 0 ? theme.warning : theme.textFaint}>{needs} need you</Text>
+          <Text color={theme.textFaint}> · {working} working</Text>
+        </>
+      }
+      hint="←↓↑→/hjkl move · enter or 1-9 open · esc close"
+    >
       <Text> </Text>
-      {sections.length === 0 ? <Text color={theme.textMuted}>No active threads.</Text> : shown}
-    </Box>
+      {sections.length === 0 ? <Text color={theme.textFaint}>No active threads.</Text> : shown}
+    </Frame>
   );
 }

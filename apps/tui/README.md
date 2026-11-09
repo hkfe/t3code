@@ -86,6 +86,15 @@ with `ctrl+q`, reopens with the saved session and sends SIGTERM. Both exits must
 terminal. It stops the server at the end and keeps the temp directory (server log, screen output)
 on failure. The playground needs at least one thread.
 
+## Look
+
+The TUI follows the terminal: it asks for the background color and uses a light or a dark palette,
+and it uses 16 colors or ASCII-only glyphs where the terminal needs them. To override:
+
+- `T3_TUI_THEME=light` or `dark` sets the palette.
+- `NO_COLOR=1` turns off color; `FORCE_COLOR=1` uses 16 colors only.
+- `T3_TUI_ASCII=1` draws with ASCII only (the default without a UTF-8 locale).
+
 ## Keys
 
 `?` opens the key help: every binding by feature plus the leader map. Type to search, `esc` closes.

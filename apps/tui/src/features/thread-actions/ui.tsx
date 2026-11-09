@@ -3,12 +3,13 @@ import { useState, type ReactNode } from "react";
 
 import type { KeyPress } from "../../app/keys.ts";
 import { isKey } from "../../app/keys.ts";
+import { FRAME_Y, Modal } from "../../app/Frame.tsx";
 import { theme } from "../../theme/theme.ts";
 import type { MenuItem } from "./menu.ts";
 
 const DIALOG_WIDTH = 60;
-// Border, title, hint and error lines around the rows.
-const DIALOG_CHROME_ROWS = 6;
+// Frame, error line and one spare line around the rows.
+const DIALOG_CHROME_ROWS = FRAME_Y + 2;
 
 export function Dialog(props: {
   readonly width: number;
@@ -19,28 +20,20 @@ export function Dialog(props: {
   readonly children: ReactNode;
 }) {
   return (
-    <Box width={props.width} height={props.height} justifyContent="center" alignItems="center">
-      <Box
-        flexDirection="column"
-        borderStyle="round"
-        borderColor={theme.borderFocused}
-        paddingX={1}
-        width={Math.min(DIALOG_WIDTH, props.width)}
-      >
-        <Text color={theme.textMuted} bold wrap="truncate">
-          {props.title}
+    <Modal
+      width={props.width}
+      height={props.height}
+      maxWidth={DIALOG_WIDTH}
+      title={props.title}
+      hint={props.hint}
+    >
+      {props.children}
+      {props.error ? (
+        <Text color={theme.danger} wrap="truncate">
+          {props.error}
         </Text>
-        {props.children}
-        {props.error ? (
-          <Text color={theme.danger} wrap="truncate">
-            {props.error}
-          </Text>
-        ) : null}
-        <Text color={theme.textFaint} wrap="truncate">
-          {props.hint}
-        </Text>
-      </Box>
-    </Box>
+      ) : null}
+    </Modal>
   );
 }
 

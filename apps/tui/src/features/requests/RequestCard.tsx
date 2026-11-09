@@ -149,7 +149,11 @@ function Idle({ onDefer }: { readonly onDefer: () => void }) {
     onDefer();
     return true;
   });
-  return <Text color={theme.textFaint}>Nothing here needs you. ctrl+r jumps to the next one.</Text>;
+  return (
+    <Text color={theme.textFaint} wrap="truncate">
+      Nothing here needs you. ctrl+r jumps to the next one.
+    </Text>
+  );
 }
 
 /** Shared by both cards: sends once at a time and keeps the last error. */
