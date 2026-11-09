@@ -869,7 +869,7 @@ it.effect("SQL shells flag only an active turn blocked solely on T3 thread waits
     yield* assertBlocked(true);
     const secondWait = { ...wait, id: TurnItemId.make("item:thread-wait:second") };
     yield* updateItem(secondWait);
-    yield* assertShellWork({ threadWaitCount: 2, workingPhase: null });
+    yield* assertShellWork({ threadWaitCount: 2, workingPhase: "waiting" });
     yield* updateItem({ ...secondWait, status: "completed", completedAt: at });
     yield* updateItem({ ...blockingDelegation, status: "completed", completedAt: at });
     yield* assertBlocked(false);
