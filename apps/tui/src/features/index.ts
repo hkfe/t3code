@@ -8,6 +8,7 @@ import { messageActionsFeature } from "./message-actions/index.ts";
 import { prPanelFeature } from "./pr-panel/index.ts";
 import { diffFeature } from "./diff/index.ts";
 import { requestsFeature } from "./requests/index.tsx";
+import { settingsFeature } from "./settings/index.ts";
 import { sidebarFeature } from "./sidebar/index.ts";
 import { splitPanesFeature } from "./split-panes/index.tsx";
 import { switcherFeature } from "./switcher/index.ts";
@@ -32,4 +33,5 @@ export const features: ReadonlyArray<TuiFeature> = [
   switcherFeature,
   prPanelFeature,
   diffFeature,
+  settingsFeature,
 ];
