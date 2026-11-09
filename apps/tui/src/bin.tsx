@@ -1,8 +1,12 @@
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
+import * as Effect from "effect/Effect";
 import { AsyncResult } from "effect/reactivity";
 import { render } from "ink";
 
 import { App } from "./app/App.tsx";
+import { resolveConfigDir } from "./connection/configDir.ts";
+import { readUserKeybindings } from "./connection/keybindingsFile.ts";
 import { appAtomRegistry } from "./connection/runtime.ts";
 import { features } from "./features/index.ts";
 import { connectPairingUrl } from "./state/catalog.ts";
@@ -10,7 +14,7 @@ import { connectPairingUrl } from "./state/catalog.ts";
 const USAGE = `Usage: t3-tui [--config-dir <dir>] [pair <pairing-url>]
 
   pair <url>        Exchange a pairing URL for a saved session, then open the TUI.
-  --config-dir      Where sessions are saved (default $XDG_CONFIG_HOME/t3-tui or ~/.config/t3-tui).
+  --config-dir      Where sessions and keybindings.json live (default $XDG_CONFIG_HOME/t3-tui or ~/.config/t3-tui).
 `;
 
 async function main(argv: ReadonlyArray<string>) {
@@ -35,7 +39,16 @@ async function main(argv: ReadonlyArray<string>) {
     throw new Error(USAGE);
   }
 
-  const instance = render(<App registry={appAtomRegistry} features={features} />, {
+  const userKeybindings = await Effect.runPromise(
+    resolveConfigDir(process.env).pipe(
+      Effect.flatMap(readUserKeybindings),
+      Effect.provide(NodeServices.layer),
+    ),
+  );
+  const app = (
+    <App registry={appAtomRegistry} features={features} userKeybindings={userKeybindings} />
+  );
+  const instance = render(app, {
     alternateScreen: true,
     exitOnCtrlC: false,
   });

@@ -38,3 +38,6 @@ export function visibleRegions(layout: Layout): ReadonlyArray<Region> {
     ...(layout.panel !== null ? (["panel"] as const) : []),
   ];
 }
+
+/** True after the leader key, until the next key picks a leader binding or cancels. */
+export const leaderPendingAtom = Atom.make(false).pipe(Atom.keepAlive);

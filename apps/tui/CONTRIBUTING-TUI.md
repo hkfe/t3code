@@ -17,6 +17,7 @@ apps/tui/src/
     registry.ts           Merges features; throws on duplicate ids or unknown commands.
     input.tsx             KeyRouter and useRegionInput.
     keys.ts               isKey(press, "ctrl+k"): web keybinding syntax on Ink key events.
+    keymap.ts             Help rows and the leader popup, from the registry.
   connection/             Effect layers for Node: catalog file, capabilities, atom runtime.
   state/                  Shared atoms, one file per topic (catalog, shell, threads, settings, ui...).
   theme/theme.ts          The warm palette. Use it; do not write hex colors in features.
@@ -37,7 +38,7 @@ apps/tui/src/
    export const prPanelFeature: TuiFeature = {
      id: "pr-panel",
      commands: [{ id: "pr-panel.open", title: "Open PR panel", run: ({ registry }) => ... }],
-     keybindings: [{ key: "ctrl+p", command: "pr-panel.open", when: ({ overlay }) => overlay === null }],
+     keybindings: [{ key: "leader p", command: "pr-panel.open", when: ({ overlay }) => overlay === null }],
      panels: [{ id: "pr-panel", title: "Pull request", component: PrPanel }],
    };
    ```
@@ -56,7 +57,7 @@ What a feature can add (all optional, see `app/feature.ts`):
 | `overlays`       | Replaces the regions; status bar stays.               | `overlayAtom` (null = off)      |
 | `statusItems`    | Status bar, `align: "left"` or `"right"`.             | always                          |
 | `commands`       | Run by keybindings and listed in the command palette. | id                              |
-| `keybindings`    | Global keys; the palette shows the first as a hint.   | key + `when`                    |
+| `keybindings`    | Global or leader keys; the palette shows the first.   | key + `when`                    |
 | `paletteSources` | More command palette rows (threads, projects...).     | the palette's query             |
 | `prPanelTabs`    | A tab of the pull request panel (see below).          | the panel's tab bar             |
 
@@ -67,7 +68,7 @@ Item ids must be unique within the source.
 
 ### Pull request panel tabs
 
-`features/pr-panel` owns the right panel `pr-panel` (`ctrl+y`) for the current thread's linked
+`features/pr-panel` owns the right panel `pr-panel` (leader `p`) for the current thread's linked
 pull requests. It draws the PR line and the tab bar; each tab is a `prPanelTabs` contribution:
 
 ```ts
@@ -107,21 +108,40 @@ and other features use them.
 - Otherwise prefix the id with your feature id: `pr-panel.refresh`.
 - `run` gets `{ registry, exit }`. Change UI state with `registry.set(atom, value)`. Start server work
   with `runAtomCommand(registry, command, input)` (see "Write state" below).
-- The registry throws at startup on duplicate command, view, panel, overlay or feature ids, and on a
-  keybinding that names an unknown command. The App render test catches this.
+- The registry throws at startup on duplicate command, view, panel, overlay or feature ids, on a
+  keybinding that names an unknown command, and on a key that does not parse. The App render test
+  catches this.
 
 ## Keys
 
 Key strings use the web syntax, parsed by `@t3tools/shared/keybindings`: `ctrl+k`, `shift+tab`,
-`alt+arrowleft`, `enter`, `escape`, `?`, `j`. `mod` means ctrl, because terminals have no Cmd key.
-`alt` is Option/Meta; on macOS terminals it works only with "Use Option as Meta" on. Prefer `ctrl`
-and plain keys for defaults. Many `ctrl+shift+x` combos are not sent by terminals.
+`alt+arrowleft`, `enter`, `escape`, `?`, `j`, `f1`-`f12`. `mod` means ctrl, because terminals have
+no Cmd key. `alt` is Option/Meta; on macOS terminals it works only with "Use Option as Meta" on.
+Many `ctrl+shift+x` combos are not sent by terminals.
+
+Free direct keys are few. Give a new global action a **leader binding** unless users press it all
+the time:
+
+```ts
+keybindings: [{ key: "leader p", command: "pr-panel.toggle", when: ({ overlay }) => overlay === null }],
+```
+
+`leader p` runs after the leader key (`ctrl+space`, user-configurable). The which-key popup and `?`
+list it under your feature id, with the command title, so make the title short and clear. Pick a
+letter that is free in the leader map (`?` shows it). Direct `ctrl+` keys are for actions used many
+times a session (palette, new thread, switcher); ask before you take one. Keep web command ids, so
+users can rebind with the same ids as on web.
+
+Two bindings on one key with `when`s that can both pass are a collision: the first wins and the
+second never runs. `app/registry.test.ts` fails on any collision among the shipped features, and at
+runtime the status bar shows collisions that user overrides cause.
 
 Order of a key press (`app/input.tsx`):
 
 1. The overlay handler, if an overlay is open.
 2. The handler of the focused region, if it registered with `{ first: true }`.
-3. Global keybindings (first match whose `when` passes).
+3. Global keybindings (first match whose `when` passes). After the leader key, the next key goes
+   only to leader bindings, before step 1; a key with no leader binding cancels.
 4. The handler of the focused region, if it did not use `first`.
 
 A handler returns `true` when it used the key; this stops the order. Region handlers:

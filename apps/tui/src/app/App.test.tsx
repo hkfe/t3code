@@ -84,9 +84,39 @@ describe("App", () => {
 
       screen.stdin.write("?");
       await vi.waitFor(() => expect(screen.lastFrame()).toContain("Toggle keybinding help"));
+      screen.stdin.write("split");
+      await vi.waitFor(() => expect(screen.lastFrame()).toContain("ctrl+space v"));
+      expect(screen.lastFrame()).not.toContain("Toggle keybinding help");
     } finally {
       screen.unmount();
       vi.unstubAllEnvs();
+    }
+  });
+
+  it("shows the leader popup, runs the next key's leader binding, and matches function keys", async () => {
+    const registry = AtomRegistry.make();
+    const screen = render(
+      <App
+        registry={registry}
+        features={[coreFeature, footerFeature]}
+        userKeybindings={{ rules: [{ key: "f5", command: "sidebar.toggle" }], errors: [] }}
+      />,
+    );
+    try {
+      screen.stdin.write("\x00");
+      await vi.waitFor(() => expect(screen.lastFrame()).toContain("ctrl+space … · esc cancel"));
+      expect(screen.lastFrame()).toContain("? Toggle keybinding help");
+      screen.stdin.write("?");
+      await vi.waitFor(() => expect(screen.lastFrame()).toContain("Leader map: ctrl+space"));
+      expect(screen.lastFrame()).not.toContain("esc cancel");
+
+      screen.stdin.write("\x1b");
+      await vi.waitFor(() => expect(screen.lastFrame()).toContain("Threads"));
+      screen.stdin.write("\x1b[15~");
+      await vi.waitFor(() => expect(screen.lastFrame()).not.toContain("Threads"));
+    } finally {
+      screen.unmount();
+      registry.dispose();
     }
   });
 

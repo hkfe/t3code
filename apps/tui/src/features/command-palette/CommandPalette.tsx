@@ -6,7 +6,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 
 import type { PaletteItem, TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
-import { isKey } from "../../app/keys.ts";
+import { displayKey, isKey } from "../../app/keys.ts";
 import { useShellRegistry, type ShellRegistry } from "../../app/registry.ts";
 import { overlayAtom } from "../../state/ui.ts";
 import { theme } from "../../theme/theme.ts";
@@ -17,7 +17,7 @@ const LABEL_WIDTH = 9;
 // Border, query line, and footer.
 const CHROME_ROWS = 4;
 // Rows that only manage the palette itself.
-const HIDDEN_COMMANDS = new Set(["commandPalette.toggle", "core.closeOverlay"]);
+const HIDDEN_COMMANDS = new Set(["commandPalette.toggle", "core.closeOverlay", "core.leader"]);
 
 function commandItems(shell: ShellRegistry): ReadonlyArray<PaletteItem> {
   return [...shell.commands.values()]
@@ -28,8 +28,7 @@ function commandItems(shell: ShellRegistry): ReadonlyArray<PaletteItem> {
         id: command.id,
         title: command.title,
         keywords: [command.id],
-        // Terminals send ctrl for `mod`.
-        ...(binding ? { hint: binding.key.replace(/\bmod\b/, "ctrl") } : {}),
+        ...(binding ? { hint: displayKey(binding.key, shell.leaderKey) } : {}),
         run: command.run,
       };
     });

@@ -1,11 +1,12 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import type { AtomRegistry } from "effect/reactivity";
 import { Box, measureElement, Text, useWindowSize, type DOMElement } from "ink";
-import { useContext, useLayoutEffect, useRef, useState, type ComponentType } from "react";
+import { useContext, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from "react";
 
 import {
   focusAtom,
   layoutAtom,
+  leaderPendingAtom,
   MIN_REGION_WIDTH,
   overlayAtom,
   routeAtom,
@@ -16,12 +17,20 @@ import { toastAtom, type Toast } from "../state/toast.ts";
 import { theme } from "../theme/theme.ts";
 import type { TuiFeature, TuiViewFooter, TuiViewProps } from "./feature.ts";
 import { KeyRouter } from "./input.tsx";
-import { buildShellRegistry, ShellRegistryContext, useShellRegistry } from "./registry.ts";
+import { leaderGroups } from "./keymap.ts";
+import { displayKey } from "./keys.ts";
+import {
+  buildShellRegistry,
+  ShellRegistryContext,
+  useShellRegistry,
+  type UserKeybindings,
+} from "./registry.ts";
 
 const STATUS_BAR_ROWS = 1;
 // Round border (1 cell each side) plus 1 cell of horizontal padding.
 const FRAME_X = 4;
 const FRAME_Y = 2;
+const LEADER_LABEL_WIDTH = 16;
 
 function RegionFrame(props: {
   readonly region: Region;
@@ -120,12 +129,71 @@ function ToastLine({ toast, width }: { readonly toast: Toast; readonly width: nu
   );
 }
 
+/** Which-key popup: the leader bindings usable now, one line per feature. */
+function useLeaderPopup(width: number) {
+  const shell = useShellRegistry();
+  const registry = useContext(RegistryContext);
+  const pending = useAtomValue(leaderPendingAtom);
+  const focus = useAtomValue(focusAtom);
+  const overlay = useAtomValue(overlayAtom);
+  if (!pending) return { rows: 0, popup: null };
+  const groups = leaderGroups(shell, { focus, overlay, registry });
+  // A grid of truncated cells, so the row count is known before layout.
+  const room = Math.max(1, width - FRAME_X - LEADER_LABEL_WIDTH);
+  const longest = Math.max(
+    0,
+    ...groups.flatMap((group) => group.entries.map((e) => e.key.length + e.title.length + 3)),
+  );
+  const cell = Math.min(longest, room);
+  const perRow = Math.max(1, Math.floor(room / cell));
+  const lines = groups.flatMap((group) =>
+    Array.from({ length: Math.ceil(group.entries.length / perRow) }, (_, index) => ({
+      id: `${group.feature}:${index}`,
+      label: index === 0 ? group.feature : "",
+      entries: group.entries.slice(index * perRow, (index + 1) * perRow),
+    })),
+  );
+  const popup = (
+    <Box
+      flexDirection="column"
+      width={width}
+      borderStyle="round"
+      borderColor={theme.borderFocused}
+      paddingX={1}
+      flexShrink={0}
+    >
+      <Text color={theme.textMuted} wrap="truncate">
+        {displayKey(shell.leaderKey ?? "leader", null)} … · esc cancel
+      </Text>
+      {lines.map((line) => (
+        <Box key={line.id}>
+          <Box width={LEADER_LABEL_WIDTH} flexShrink={0}>
+            <Text color={theme.textFaint} wrap="truncate">
+              {line.label}
+            </Text>
+          </Box>
+          {line.entries.map((entry) => (
+            <Box key={entry.key} width={cell} flexShrink={0}>
+              <Text wrap="truncate">
+                <Text color={theme.accent}>{entry.key}</Text>
+                <Text color={theme.text}> {entry.title}</Text>
+              </Text>
+            </Box>
+          ))}
+        </Box>
+      ))}
+    </Box>
+  );
+  return { rows: lines.length + 1 + FRAME_Y, popup };
+}
+
 function Shell() {
   const registry = useShellRegistry();
   const { columns, rows } = useWindowSize();
   const layout = useAtomValue(layoutAtom);
   const toast = useAtomValue(toastAtom);
-  const bodyHeight = Math.max(FRAME_Y + 1, rows - STATUS_BAR_ROWS - (toast ? 1 : 0));
+  const leader = useLeaderPopup(columns);
+  const bodyHeight = Math.max(FRAME_Y + 1, rows - STATUS_BAR_ROWS - (toast ? 1 : 0) - leader.rows);
   const panel = layout.panel === null ? undefined : registry.panels.get(layout.panel);
   // Side regions give way so the main pane keeps at least MIN_REGION_WIDTH columns.
   const room = Math.max(0, columns - MIN_REGION_WIDTH - FRAME_X);
@@ -159,6 +227,7 @@ function Shell() {
           )}
         </Box>
       )}
+      {leader.popup}
       {toast && <ToastLine toast={toast} width={columns} />}
       <StatusBar width={columns} />
     </Box>
@@ -226,8 +295,12 @@ function useOverlay() {
 export function App(props: {
   readonly registry: AtomRegistry.AtomRegistry;
   readonly features: ReadonlyArray<TuiFeature>;
+  readonly userKeybindings?: UserKeybindings;
 }) {
-  const shell = buildShellRegistry(props.features);
+  const shell = useMemo(
+    () => buildShellRegistry(props.features, props.userKeybindings),
+    [props.features, props.userKeybindings],
+  );
   return (
     <RegistryContext.Provider value={props.registry}>
       <ShellRegistryContext.Provider value={shell}>

@@ -14,5 +14,8 @@ export const settingsFeature: TuiFeature = {
       run: ({ registry }) => registry.set(overlayAtom, OVERLAY),
     },
   ],
+  keybindings: [
+    { key: "leader ,", command: "settings.open", when: ({ overlay }) => overlay === null },
+  ],
   overlays: [{ id: OVERLAY, component: SettingsOverlay }],
 };

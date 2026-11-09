@@ -14,8 +14,8 @@ export const agentOverviewFeature: TuiFeature = {
         registry.set(overlayAtom, registry.get(overlayAtom) === OVERVIEW ? null : OVERVIEW),
     },
   ],
-  // Web uses Option+`; ctrl+x works in every terminal, alt+` only with Option as Meta.
-  keybindings: ["ctrl+x", "alt+`"].map((key) => ({
+  // Web uses Option+`, which needs Option as Meta; the leader key works in every terminal.
+  keybindings: ["leader a", "alt+`"].map((key) => ({
     key,
     command: "agent-overview.toggle",
     when: ({ overlay }) => overlay === null || overlay === OVERVIEW,

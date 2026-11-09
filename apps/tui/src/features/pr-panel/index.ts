@@ -23,7 +23,7 @@ export const prPanelFeature: TuiFeature = {
     },
   ],
   keybindings: [
-    { key: "ctrl+y", command: "pr-panel.toggle", when: ({ overlay }) => overlay === null },
+    { key: "leader p", command: "pr-panel.toggle", when: ({ overlay }) => overlay === null },
   ],
   panels: [{ id: PANEL_ID, title: "Pull request", component: PrPanel }],
   prPanelTabs: [

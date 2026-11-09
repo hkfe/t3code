@@ -78,11 +78,11 @@ export const splitPanesFeature: TuiFeature = {
     },
   ],
   keybindings: [
-    { key: "alt+v", command: "split-panes.splitRight", when: noOverlay },
-    { key: "alt+y", command: "split-panes.splitDown", when: noOverlay },
-    { key: "alt+c", command: "split-panes.close", when: noOverlay },
-    { key: "ctrl+f", command: "split-panes.focusNext", when: noOverlay },
-    { key: "alt+x", command: "split-panes.swap", when: noOverlay },
+    { key: "leader v", command: "split-panes.splitRight", when: noOverlay },
+    { key: "leader s", command: "split-panes.splitDown", when: noOverlay },
+    { key: "leader x", command: "split-panes.close", when: noOverlay },
+    { key: "leader o", command: "split-panes.focusNext", when: noOverlay },
+    { key: "leader m", command: "split-panes.swap", when: noOverlay },
   ],
   statusItems: [{ id: "split-panes.status", align: "left", component: PaneStatus }],
 };

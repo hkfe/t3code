@@ -37,20 +37,60 @@ never reads or writes T3 home (`~/.t3`).
 
 ## Keys
 
-`?` lists every binding. The basics: `tab` / `shift+tab` move focus between sidebar, main pane and
-right panel; `ctrl+b` toggles the sidebar; `alt+←` / `alt+→` resize the focused side region;
-`ctrl+w` closes the right panel; `ctrl+q` or `ctrl+c` quits.
+`?` opens the key help: every binding by feature plus the leader map. Type to search, `esc` closes.
+The basics: `tab` / `shift+tab` move focus between sidebar, main pane and right panel; `ctrl+b`
+toggles the sidebar; `alt+←` / `alt+→` resize the focused side region; `ctrl+w` closes the right
+panel; `ctrl+q` or `ctrl+c` quits.
+
+Less used actions sit behind the leader key, `ctrl+space` (or `ctrl+\`), as in tmux: press it,
+let go, then press the next key. A popup lists the next keys; `esc` cancels.
+
+| Key               | Action                       | Key        | Action                  |
+| ----------------- | ---------------------------- | ---------- | ----------------------- |
+| `ctrl+k` `ctrl+p` | Command palette              | leader `v` | Split pane side by side |
+| `ctrl+n`          | New thread                   | leader `s` | Split pane stacked      |
+| `ctrl+]`          | Thread switcher              | leader `o` | Next pane               |
+| `ctrl+o`          | Thread actions               | leader `m` | Swap pane with the next |
+| `ctrl+r`          | Next approval or question    | leader `x` | Close pane              |
+| `ctrl+l`          | Model picker                 | leader `d` | Thread changes (diff)   |
+| `ctrl+g` `ctrl+t` | Runtime mode, plan mode      | leader `p` | Pull request panel      |
+| `ctrl+y`          | Open a notification's thread | leader `a` | Agent overview          |
+| `?`               | Key help                     | leader `,` | Settings                |
+| `ctrl+q`          | Quit                         | leader `?` | Key help                |
+
+On macOS, `ctrl+space` switches the input source when more than one is set up. Turn that shortcut
+off in System Settings › Keyboard › Keyboard Shortcuts › Input Sources, use `ctrl+\`, or pick
+another leader key in `keybindings.json`.
+
+### Change keys
+
+Put your bindings in `keybindings.json` beside `connections.json` (default
+`~/.config/t3-tui/keybindings.json`). It uses the web app's format, without `when`:
+
+```json
+[
+  { "key": "f2", "command": "diff.toggle" },
+  { "key": "leader t", "command": "thread-actions.rename" },
+  { "key": "ctrl+a", "command": "core.leader" }
+]
+```
+
+A rule replaces every default key of its command and applies where the default did. `leader x`
+binds a key after the leader; `core.leader` moves the leader key. Keys use the web syntax (`ctrl+`,
+`alt+`, `shift+`, `f1`-`f12`, `home`, `pageup`...). The command ids are in `?` and the command
+palette. Restart the TUI after a change. Rules that are not valid, and keys that hide other keys,
+show in the status bar and at the top of `?`.
 
 `ctrl+k` or `ctrl+p` opens the command palette: commands, threads, projects and message search.
 `↑`/`↓` or `ctrl+n`/`ctrl+p` move, `enter` runs, `esc` closes. The web app also opens it with
 Cmd+Shift+P, which terminals cannot send.
 
-Split panes show up to four threads at once. `alt+v` splits the focused pane side by side and
-`alt+y` stacks it; `ctrl+f` moves focus to the next pane, `alt+x` swaps it with the next one and
-`alt+c` closes it. A thread you open from the sidebar or the palette opens in the focused pane.
+Split panes show up to four threads at once. Leader `v` splits the focused pane side by side and
+leader `s` stacks it; leader `o` moves focus to the next pane, leader `m` swaps it with the next one
+and leader `x` closes it. A thread you open from the sidebar or the palette opens in the focused pane.
 "Open thread to the side" in the palette opens it beside the focused pane.
 
-`ctrl+x` opens the agent overview: threads that need you, working ones with a live timer, and
+Leader `a` opens the agent overview: threads that need you, working ones with a live timer, and
 recent ones as cards. Arrows or `h` `j` `k` `l` move, `enter` or `1`-`9` open, `esc` closes. The web
 app uses Option+`` ` ``, which works here too when Option sends Meta.
 
@@ -92,14 +132,14 @@ writes (Terminal.app does not; tmux needs `set -g set-clipboard on`).
 
 ### Pull request panel
 
-`ctrl+y` opens the pull requests linked to the open thread in the right panel, and closes it.
+Leader `p` opens the pull requests linked to the open thread in the right panel, and closes it.
 `[` / `]` or `1`-`9` switch tabs, `n` goes to the next linked pull request and `r` reloads.
 `j` / `k`, `ctrl+d` / `ctrl+u` and `g` / `G` scroll. In Timeline, `e` expands commit runs. In
 Checks, `j` / `k` select a check, `enter` shows its log (GitHub Actions) and `escape` hides it.
 
 ### Diffs
 
-`ctrl+v` shows the open thread's changes (its checkpoint diffs); `escape` goes back. The command
+Leader `d` shows the open thread's changes (its checkpoint diffs); `escape` goes back. The command
 palette's "Toggle pull request code" opens the linked pull request's changed files in the right
 panel.
 

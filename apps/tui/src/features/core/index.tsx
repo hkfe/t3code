@@ -4,12 +4,16 @@ import type { TuiFeature } from "../../app/feature.ts";
 import {
   focusAtom,
   layoutAtom,
+  leaderPendingAtom,
   MIN_REGION_WIDTH,
   overlayAtom,
   visibleRegions,
   type Layout,
 } from "../../state/ui.ts";
-import { HelpPanel } from "./HelpPanel.tsx";
+import { LEADER_COMMAND } from "../../app/registry.ts";
+import { HelpOverlay, KeymapStatus } from "./HelpOverlay.tsx";
+
+const HELP = "core.help";
 
 const RESIZE_STEP = 4;
 
@@ -67,10 +71,12 @@ export const coreFeature: TuiFeature = {
       id: "core.help",
       title: "Toggle keybinding help",
       run: ({ registry }) =>
-        updateLayout(registry, (layout) => ({
-          ...layout,
-          panel: layout.panel === "core.help" ? null : "core.help",
-        })),
+        registry.set(overlayAtom, registry.get(overlayAtom) === HELP ? null : HELP),
+    },
+    {
+      id: LEADER_COMMAND,
+      title: "Leader key: show the next keys",
+      run: ({ registry }) => registry.set(leaderPendingAtom, true),
     },
     {
       id: "rightPanel.close",
@@ -101,9 +107,14 @@ export const coreFeature: TuiFeature = {
     { key: "shift+tab", command: "workspace.focusPrevious", when: noOverlay },
     { key: "mod+b", command: "sidebar.toggle", when: noOverlay },
     { key: "?", command: "core.help", when: noOverlay },
+    // ctrl+\ for terminals or macOS input-source shortcuts that take ctrl+space.
+    { key: "ctrl+space", command: LEADER_COMMAND, when: noOverlay },
+    { key: "ctrl+\\", command: LEADER_COMMAND, when: noOverlay },
+    { key: "leader ?", command: "core.help", when: noOverlay },
     { key: "mod+w", command: "rightPanel.close", when: noOverlay },
     { key: "alt+arrowright", command: "core.grow", when: noOverlay },
     { key: "alt+arrowleft", command: "core.shrink", when: noOverlay },
   ],
-  panels: [{ id: "core.help", title: "Keys", component: HelpPanel }],
+  overlays: [{ id: HELP, component: HelpOverlay }],
+  statusItems: [{ id: "core.keymapIssues", align: "right", component: KeymapStatus }],
 };
