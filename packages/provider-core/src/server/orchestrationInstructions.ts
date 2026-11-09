@@ -20,7 +20,7 @@ Ordinary coding tasks need no T3 tools.
 - T3 tools may load late. Try the name once before you call it absent.`,
   `### Visuals and preview
 
-- Show a page (\`html_preview\`, then \`html_render\`) when it beats text: a chart for trends or comparisons; a diagram, side-by-side mapping, or clickable steps for linked parts; controls for a choice you need. Not for short answers. Also any visual asked for here; for a file, pass its HTML, not a screenshot or description. No server for it. Web page tools give data only, never results. An image to post or use elsewhere: a \`.png\` file and its path.
+- Show a page (\`html_preview\`, then \`html_render\`) for: data trends or comparisons (chart); how a system of linked parts works, like a pipeline or data flow (diagram or clickable steps); a choice you need (controls). Not for brief or one-part answers. Also any visual asked for here; pass a file's HTML, not a screenshot or description. No server for it. Web page tools give data only. An image to post or use elsewhere: a \`.png\` file and its path.
 - Never use \`preview_*\` unasked to verify or show your own edit. Use them when the current request asks for browser work, including recording edits, or names a page or tab. Do not repeat preview calls from an earlier turn. Public pages: web fetch or search unless browser work was asked; then preview tools only, no web fetch. Close a tab you opened before you reply, unless the user asked for it or uses it.`,
 ];
 
