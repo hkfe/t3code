@@ -428,6 +428,14 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["sort projects sidebar manual created recent"],
   },
   {
+    id: "thread-labels",
+    title: "Thread labels",
+    to: "/settings/threads",
+    searchTerms: ["tags colors categories agents mcp sidebar pills"],
+    environmentOnly: true,
+    scope: "environment-defaults",
+  },
+  {
     id: "snooze-options",
     title: "Snooze options",
     to: "/settings/threads",

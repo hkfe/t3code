@@ -19,6 +19,7 @@ import {
   RunId,
   NonNegativeInt,
   ProjectId,
+  ThreadLabel,
 } from "@t3tools/contracts";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Schema from "effect/Schema";
@@ -28,6 +29,7 @@ import * as ThreadSearch from "../../../orchestration-v2/ThreadSearch.ts";
 import * as ScheduledTaskService from "../../../scheduledTasks/ScheduledTaskService.ts";
 import * as ThreadManagementService from "../../../orchestration-v2/ThreadManagementService.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
+import * as ServerSettings from "../../../serverSettings.ts";
 
 const ThreadOrganizeTool = Tool.make("t3_thread_organize", {
   description:
@@ -74,6 +76,25 @@ const commandTool = {
     SecureRandom.SecureRandom,
   ],
 };
+const ThreadLabelsTool = Tool.make("t3_thread_labels", {
+  ...commandTool,
+  description:
+    "Color-coded thread labels from the user's T3 settings. Omit `threadId` for this thread. list: the allowed labels and this thread's. set: replace its labels with `labels`. add, remove: change only `labels`. Give label ids or names from list; other labels are rejected.",
+  parameters: Schema.Struct({
+    action: Schema.Literals(["list", "set", "add", "remove"]),
+    environmentId: OrchestratorMcpEnvironmentTarget,
+    threadId: Schema.optional(ThreadId),
+    labels: Schema.optional(Schema.Array(Schema.String).check(Schema.isMaxLength(32))),
+  }),
+  success: Schema.Struct({
+    available: Schema.Array(ThreadLabel),
+    threadLabels: Schema.Array(Schema.String),
+  }),
+  dependencies: [...commandTool.dependencies, ServerSettings.ServerSettingsService],
+})
+  .annotate(Tool.Title, "Label a thread")
+  .annotate(Tool.Destructive, false);
+
 const queueEntry = Schema.Struct({
   queuedRunId: RunId,
   text: Schema.String,
@@ -243,6 +264,7 @@ export const ThreadToolkit = Toolkit.make(
   ThreadConfigureTool,
   ThreadTransferTool,
   ThreadOrganizeTool,
+  ThreadLabelsTool,
   PendingRequestTool,
   QueueTool,
 );

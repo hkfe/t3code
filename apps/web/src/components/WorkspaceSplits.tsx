@@ -19,6 +19,7 @@ import { formatRelativeTimeLabel } from "../timestampFormat";
 import ChatView from "./ChatView";
 import { BackgroundThreadContext } from "./chat/backgroundThread";
 import { ProjectFavicon } from "./ProjectFavicon";
+import { ThreadLabelPills } from "./ThreadLabelPills";
 import { resolveSidebarThreadStatus } from "./Sidebar.logic";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
@@ -99,6 +100,7 @@ function describeThread(
       project: project ?? null,
       dot,
       branch: shell.branch,
+      tags: shell.tags,
       activityAt: shell.latestUserMessageAt ?? shell.updatedAt,
       snoozed: effectiveSnoozed(shell, { now: new Date().toISOString() }),
     },
@@ -359,6 +361,12 @@ function ThreadSwitcher(props: {
                 <span className="line-clamp-2 text-sm leading-snug font-semibold text-foreground">
                   {thread.label}
                 </span>
+                <ThreadLabelPills
+                  environmentId={thread.ref.environmentId}
+                  tags={thread.tags}
+                  max={4}
+                  className="-mt-1"
+                />
                 {thread.branch ? (
                   <span className="flex min-w-0 items-center gap-1 font-mono text-3xs text-muted-foreground">
                     <GitBranch className="size-3 shrink-0" />
