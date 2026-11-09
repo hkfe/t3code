@@ -112,4 +112,17 @@ panel.
 Viewed marks on a pull request are saved on the host, as on web. Marks on thread changes stay in
 memory until you quit.
 
+### Projects and workspaces
+
+`alt+p` (or "Projects…" in the palette) lists projects: pinned first, with thread counts. `j` / `k`
+move, `enter` or `h` / `l` fold a project's threads, `enter` on a thread opens it. `a` adds a project
+by the absolute path of an existing folder on the server, `p` pins or unpins, `r` renames, `s` shows
+its settings (path, default model with `m`, scripts) and `y` copies its path. `d` asks before it
+removes a project and its threads: only `y` removes it, and the folder stays on disk.
+
+The status bar shows the open thread's branch, `↑` ahead, `↓` behind, `●` changed files and its open
+pull request. `alt+g` opens the workspace panel with the same details. There, `w` moves a thread
+without a worktree into a new one (you can edit the branch name first), `y` copies the path, `e`
+opens it in `$VISUAL` or `$EDITOR` (only for a path on this machine) and `r` refreshes the status.
+
 Building a feature? Read [CONTRIBUTING-TUI.md](./CONTRIBUTING-TUI.md).

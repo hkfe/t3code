@@ -1,4 +1,4 @@
-import type { ThreadLabelColor } from "@t3tools/contracts";
+import type { ProjectIconColor, ThreadLabelColor } from "@t3tools/contracts";
 
 /**
  * The fork's warm dark palette. Syntax roles copy apps/web/src/lib/warmSyntaxTheme.ts;
@@ -52,4 +52,25 @@ export const theme = {
     violet: "#c4b5fd",
     pink: "#f9a8d4",
   } satisfies Record<ThreadLabelColor, string>,
+  /** Project icon colors: the Tailwind 400 shades web uses in dark mode. */
+  project: {
+    gray: "#9ca3af",
+    red: "#f87171",
+    orange: "#fb923c",
+    amber: "#fbbf24",
+    yellow: "#facc15",
+    lime: "#a3e635",
+    green: "#4ade80",
+    emerald: "#34d399",
+    teal: "#2dd4bf",
+    cyan: "#22d3ee",
+    sky: "#38bdf8",
+    blue: "#60a5fa",
+    indigo: "#818cf8",
+    violet: "#a78bfa",
+    purple: "#c084fc",
+    fuchsia: "#e879f9",
+    pink: "#f472b6",
+    rose: "#fb7185",
+  } satisfies Record<ProjectIconColor, string>,
 } as const;

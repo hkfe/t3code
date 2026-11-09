@@ -6,6 +6,7 @@ import { connectionFeature } from "./connection/index.ts";
 import { coreFeature } from "./core/index.tsx";
 import { messageActionsFeature } from "./message-actions/index.ts";
 import { prPanelFeature } from "./pr-panel/index.ts";
+import { projectsFeature } from "./projects/index.ts";
 import { diffFeature } from "./diff/index.ts";
 import { requestsFeature } from "./requests/index.tsx";
 import { settingsFeature } from "./settings/index.ts";
@@ -34,4 +35,5 @@ export const features: ReadonlyArray<TuiFeature> = [
   prPanelFeature,
   diffFeature,
   settingsFeature,
+  projectsFeature,
 ];
