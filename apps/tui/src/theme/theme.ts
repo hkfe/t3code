@@ -34,6 +34,13 @@ export const theme = {
     attributes: "#8fd1c4",
     punctuation: "#857d76",
   },
+  /** Line and changed-word backgrounds of diffs: success and danger, darkened onto the panel. */
+  diff: {
+    addedBg: "#26301f",
+    addedWordBg: "#3d5230",
+    removedBg: "#3a2421",
+    removedWordBg: "#5e322b",
+  },
   label: {
     gray: "#d4d4d8",
     red: "#fca5a5",
