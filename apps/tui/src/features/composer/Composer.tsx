@@ -24,7 +24,7 @@ import { isKey, type KeyPress } from "../../app/keys.ts";
 import { composerReplyTargetAtom } from "../../state/composer.ts";
 import { environmentShell } from "../../state/shell.ts";
 import { environmentThreadDetails } from "../../state/threads.ts";
-import { routeAtom } from "../../state/ui.ts";
+import { usePaneRoute } from "../../state/panes.ts";
 import { theme } from "../../theme/theme.ts";
 import { pastedImagePath, readImageAttachment } from "./attachments.ts";
 import {
@@ -78,7 +78,7 @@ function isNewline(press: KeyPress): boolean {
 }
 
 export function Composer({ focused, width, height }: TuiViewProps) {
-  const thread = useAtomValue(routeAtom).thread;
+  const thread = usePaneRoute().thread;
   if (thread === null) return null;
   return (
     <ThreadComposer

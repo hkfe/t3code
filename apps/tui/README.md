@@ -45,6 +45,11 @@ right panel; `ctrl+b` toggles the sidebar; `alt+←` / `alt+→` resize the focu
 `↑`/`↓` or `ctrl+n`/`ctrl+p` move, `enter` runs, `esc` closes. The web app also opens it with
 Cmd+Shift+P, which terminals cannot send.
 
+Split panes show up to four threads at once. `ctrl+y` splits the focused pane side by side and
+`alt+y` stacks it; `ctrl+f` moves focus to the next pane, `alt+x` swaps it with the next one and
+`ctrl+x` closes it. A thread you open from the sidebar or the palette opens in the focused pane.
+"Open thread to the side" in the palette opens it beside the focused pane.
+
 In the sidebar: `j` / `k` or arrows move, `g` / `G` jump to the top or bottom, `enter` opens a
 thread or folds a section, `h` / `l` (or `←` / `→`, `space`) fold and unfold sections and project
 folders, and `/` filters threads as you type (`escape` clears it).

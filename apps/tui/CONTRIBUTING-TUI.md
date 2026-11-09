@@ -68,6 +68,12 @@ View, footer, panel and overlay components get `{ focused, width, height }`: the
 cells. A view gets the rows its footers leave. Render inside that box. For long lists, render only
 the rows that fit (see `features/sidebar/Sidebar.tsx`).
 
+Main views and footers can render more than once: with split panes (`state/panes.ts`) each pane
+is a frame of its own. Read the pane's thread with `usePaneRoute()`, not `routeAtom`, and keep
+per-view state in the component or in atoms keyed by thread. Only the active pane gets
+`focused: true` and `useRegionInput("main", ...)` keys. `routeAtom` is always the active pane's
+route, so commands that read it act on the focused pane.
+
 Replacing a wave-0 module (sidebar, thread view): edit that feature's folder, or remove its line
 from `features/index.ts` and add yours. Keep the view ids `home` and `thread`, because the router
 and other features use them.
@@ -131,6 +137,7 @@ All server data comes from `@t3tools/client-runtime` atoms, made once per app in
 | `state/settings`     | `serverEnvironment.settingsValueAtom(environmentId)`: server settings (`threadLabels`...), server config                       |
 | `state/threadShells` | `environmentThreadShells.quietThreadShellsAtom`: presented thread shells of every environment, as web lists them               |
 | `state/ui`           | `routeAtom`, `focusAtom`, `overlayAtom`, `layoutAtom` (TUI view state, plain writable atoms)                                   |
+| `state/panes`        | `panesAtom` (split panes), `usePaneRoute()` (the route of the pane a main view renders in)                                     |
 
 `state/composer` exports `composerReplyTargetAtom`: the message the next send quotes. Set it to
 reply; the composer shows the quote chip and clears it after the send.

@@ -1,7 +1,7 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import type { AtomRegistry } from "effect/reactivity";
 import { Box, measureElement, Text, useWindowSize, type DOMElement } from "ink";
-import { useLayoutEffect, useRef, useState, type ComponentType } from "react";
+import { useContext, useLayoutEffect, useRef, useState, type ComponentType } from "react";
 
 import {
   focusAtom,
@@ -11,6 +11,7 @@ import {
   routeAtom,
   type Region,
 } from "../state/ui.ts";
+import { PaneContext, paneRoutes, panesAtom } from "../state/panes.ts";
 import { theme } from "../theme/theme.ts";
 import type { TuiFeature, TuiViewFooter, TuiViewProps } from "./feature.ts";
 import { KeyRouter } from "./input.tsx";
@@ -29,7 +30,8 @@ function RegionFrame(props: {
   readonly component: ComponentType<TuiViewProps> | null;
   readonly footers?: ReadonlyArray<TuiViewFooter>;
 }) {
-  const focused = useAtomValue(focusAtom) === props.region;
+  const pane = useContext(PaneContext);
+  const focused = useAtomValue(focusAtom) === props.region && pane?.active !== false;
   const Component = props.component;
   const innerHeight = Math.max(0, props.height - FRAME_Y - (props.title ? 1 : 0));
   const innerWidth = Math.max(0, (props.width ?? MIN_REGION_WIDTH) - FRAME_X);
@@ -110,7 +112,6 @@ function Shell() {
   const registry = useShellRegistry();
   const { columns, rows } = useWindowSize();
   const layout = useAtomValue(layoutAtom);
-  const route = useAtomValue(routeAtom);
   const bodyHeight = Math.max(FRAME_Y + 1, rows - STATUS_BAR_ROWS);
   const panel = layout.panel === null ? undefined : registry.panels.get(layout.panel);
   // Side regions give way so the main pane keeps at least MIN_REGION_WIDTH columns.
@@ -133,13 +134,7 @@ function Shell() {
               component={registry.sidebar}
             />
           )}
-          <RegionFrame
-            region="main"
-            width={mainWidth}
-            height={bodyHeight}
-            component={registry.views.get(route.view)?.component ?? null}
-            footers={registry.footers.filter((footer) => footer.view === route.view)}
-          />
+          <MainPanes width={mainWidth} height={bodyHeight} />
           {panel && panelWidth > 0 && (
             <RegionFrame
               region="panel"
@@ -152,6 +147,54 @@ function Shell() {
         </Box>
       )}
       <StatusBar width={columns} />
+    </Box>
+  );
+}
+
+function MainFrame(props: {
+  readonly view: string;
+  readonly width: number;
+  readonly height: number;
+}) {
+  const registry = useShellRegistry();
+  return (
+    <RegionFrame
+      region="main"
+      width={props.width}
+      height={props.height}
+      component={registry.views.get(props.view)?.component ?? null}
+      footers={registry.footers.filter((footer) => footer.view === props.view)}
+    />
+  );
+}
+
+/** One main view, or a split: each pane gets its route through `PaneContext`. */
+function MainPanes(props: { readonly width: number; readonly height: number }) {
+  const route = useAtomValue(routeAtom);
+  const panes = useAtomValue(panesAtom);
+  const routes = paneRoutes({ panes, route });
+  if (routes.length === 1) return <MainFrame view={route.view} {...props} />;
+  const row = panes.direction === "row";
+  const share = Math.floor((row ? props.width : props.height) / routes.length);
+  const last = (row ? props.width : props.height) - share * (routes.length - 1);
+  return (
+    <Box flexDirection={panes.direction} width={props.width} height={props.height}>
+      {routes.map((paneRoute, index) => {
+        const size = index === routes.length - 1 ? last : share;
+        return (
+          <PaneContext.Provider
+            // oxlint-disable-next-line react/no-array-index-key -- a pane is its slot; two may show one thread
+            key={index}
+            value={{ route: paneRoute, active: index === panes.active }}
+          >
+            <MainFrame
+              view={paneRoute.view}
+              width={row ? size : props.width}
+              height={row ? props.height : size}
+            />
+          </PaneContext.Provider>
+        );
+      })}
     </Box>
   );
 }

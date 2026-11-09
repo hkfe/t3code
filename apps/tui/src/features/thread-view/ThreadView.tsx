@@ -8,7 +8,7 @@ import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { messageSelectionAtom } from "../../state/messageSelection.ts";
 import { environmentThreadDetails } from "../../state/threads.ts";
-import { routeAtom } from "../../state/ui.ts";
+import { usePaneRoute } from "../../state/panes.ts";
 import { theme } from "../../theme/theme.ts";
 import { blockMessageId, buildBlocks, isExpandable, renderBlock } from "./blocks.ts";
 import type { Line } from "./lines.ts";
@@ -177,7 +177,7 @@ function Messages({
 }
 
 export function ThreadView({ width, height }: TuiViewProps) {
-  const thread = useAtomValue(routeAtom).thread;
+  const thread = usePaneRoute().thread;
   if (thread === null) return <Text color={theme.textFaint}>Select a thread.</Text>;
   return (
     <Messages

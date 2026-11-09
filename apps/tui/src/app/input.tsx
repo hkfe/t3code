@@ -2,6 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import { useApp, useInput } from "ink";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
+import { PaneContext } from "../state/panes.ts";
 import { focusAtom, overlayAtom, type Region } from "../state/ui.ts";
 import type { TuiCommand, TuiKeybinding } from "./feature.ts";
 import { findKeybinding, type KeyPress } from "./keys.ts";
@@ -20,10 +21,10 @@ const HandlersContext = createContext<Map<Target, Set<{ readonly current: Regist
 );
 
 /**
- * Receives keys while `target` has focus, after the global bindings. With `first` (text
- * fields) it sees keys before them and returns false for keys it leaves to them.
- * Overlays use "overlay" and always go first. A view and its footer may share a target;
- * handlers then run in mount order until one returns true.
+ * Receives keys while `target` has focus (in a split: only in the active pane), after the
+ * global bindings. With `first` (text fields) it sees keys before them and returns false for
+ * keys it leaves to them. Overlays use "overlay" and always go first. A view and its footer
+ * may share a target; handlers then run in mount order until one returns true.
  */
 export function useRegionInput(
   target: Target,
@@ -32,6 +33,7 @@ export function useRegionInput(
 ): void {
   const handlers = useContext(HandlersContext);
   if (handlers === null) throw new Error("useRegionInput needs <KeyRouter>.");
+  const inactivePane = useContext(PaneContext)?.active === false;
   const first = target === "overlay" || options?.first === true;
   const entry = useRef<Registered>({ handler, first });
   // Updated every render so the router always calls the newest closure.
@@ -39,12 +41,13 @@ export function useRegionInput(
     entry.current = { handler, first };
   });
   useEffect(() => {
+    if (inactivePane) return;
     const set = handlers.get(target) ?? new Set();
     handlers.set(target, set.add(entry));
     return () => {
       set.delete(entry);
     };
-  }, [handlers, target]);
+  }, [handlers, target, inactivePane]);
 }
 
 export function KeyRouter(props: {
