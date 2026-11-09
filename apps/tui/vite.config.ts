@@ -24,8 +24,6 @@ export default mergeConfig(
         neverBundle: ["react-devtools-core", "bufferutil", "utf-8-validate"],
       },
       banner: { js: "#!/usr/bin/env node\n" },
-      // One file: bin.tsx loads run.tsx after the theme probe; inlined modules still load lazily.
-      outputOptions: { inlineDynamicImports: true },
     },
   }),
 );

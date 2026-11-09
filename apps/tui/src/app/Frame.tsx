@@ -1,6 +1,7 @@
 import { Box, Text } from "ink";
 import type { ReactNode } from "react";
 
+import { truncate } from "../features/thread-view/lines.ts";
 import { colorMode, theme } from "../theme/theme.ts";
 
 /** Rows and columns a Frame takes around its children: border, plus 1 column of padding. */
@@ -16,12 +17,17 @@ function Rule(props: {
   readonly align: "left" | "right";
   readonly color: string;
   readonly heavy: boolean;
+  /** Cells the label may take; Ink does not shrink text in this row, so strings cut here. */
+  readonly room: number | undefined;
 }) {
-  const label = props.label ? (
-    <Box flexShrink={1} minWidth={0}>
+  const text =
+    typeof props.label === "string" && props.room !== undefined
+      ? truncate(props.label, Math.max(1, props.room))
+      : props.label;
+  const label = text ? (
+    <Box flexShrink={1} minWidth={0} paddingX={1}>
       <Text color={props.labelColor} bold={props.bold} wrap="truncate">
-        {" "}
-        {props.label}{" "}
+        {text}
       </Text>
     </Box>
   ) : null;
@@ -67,6 +73,7 @@ export function Frame(props: {
   const color = props.focused ? theme.borderFocused : theme.border;
   // Without color, a heavy border is what shows focus.
   const heavy = props.focused && colorMode === "none";
+  const room = props.width === undefined ? undefined : props.width - 6;
   return (
     <Box
       flexDirection="column"
@@ -81,6 +88,7 @@ export function Frame(props: {
         right={heavy ? "┓" : "╮"}
         heavy={heavy}
         label={props.title}
+        room={room}
         labelColor={props.focused ? theme.accent : theme.textMuted}
         bold
         align="left"
@@ -103,6 +111,7 @@ export function Frame(props: {
         right={heavy ? "┛" : "╯"}
         heavy={heavy}
         label={props.hint}
+        room={room}
         labelColor={theme.textFaint}
         bold={false}
         align="right"
