@@ -98,6 +98,18 @@ function Messages({
     );
   };
 
+  // Scroll a new selection into view, also when another feature selects a message.
+  const [revealed, setRevealed] = useState(selectedId);
+  if (selectedId !== revealed) {
+    setRevealed(selectedId);
+    if (selected !== -1) {
+      const start = layout.starts[selected]!;
+      const end = start + layout.lines[selected]!.length;
+      if (start < top) scrollTo(start);
+      else if (end > top + bodyHeight) scrollTo(Math.min(start, end - bodyHeight));
+    }
+  }
+
   const select = (index: number) => {
     const block = blocks[index];
     if (!block) return;
@@ -106,10 +118,6 @@ function Messages({
       itemId: block.id,
       messageId: blockMessageId(block),
     });
-    const start = layout.starts[index]!;
-    const end = start + layout.lines[index]!.length;
-    if (start < top) scrollTo(start);
-    else if (end > top + bodyHeight) scrollTo(Math.min(start, end - bodyHeight));
   };
 
   useRegionInput("main", (press) => {
