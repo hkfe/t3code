@@ -97,4 +97,19 @@ writes (Terminal.app does not; tmux needs `set -g set-clipboard on`).
 `j` / `k`, `ctrl+d` / `ctrl+u` and `g` / `G` scroll. In Timeline, `e` expands commit runs. In
 Checks, `j` / `k` select a check, `enter` shows its log (GitHub Actions) and `escape` hides it.
 
+### Diffs
+
+`ctrl+x` shows the open thread's changes (its checkpoint diffs); `escape` goes back. The command
+palette's "Toggle pull request code" opens the linked pull request's changed files in the right
+panel.
+
+- In the file list: `j` / `k` move, `enter` opens a file, `v` or `space` marks it viewed, `t`
+  groups files by folder, `c` / `C` step through the turns or the pull request's commits.
+- In a diff: `j` / `k` and `ctrl+d` / `ctrl+u` scroll, `n` / `p` jump between hunks, `w` wraps long
+  lines, `x` shows folded unchanged lines, `J` / `K` open the next or previous file, `escape` goes
+  back to the list. A wide region shows the diff side by side.
+
+Viewed marks on a pull request are saved on the host, as on web. Marks on thread changes stay in
+memory until you quit.
+
 Building a feature? Read [CONTRIBUTING-TUI.md](./CONTRIBUTING-TUI.md).
