@@ -531,7 +531,12 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       assert.isNull(previewChannel.publish);
       assert.equal(release.productName, "T3 Code (Beta)");
       const { extendInfo } = release.mac as { extendInfo: Record<string, unknown> };
-      assert.match(String(extendInfo.CFBundleName), /^T3-Code \(helios - ([0-9a-f]{7}|dev)\)$/);
+      assert.match(
+        String(extendInfo.CFBundleDisplayName),
+        /^T3-Code \(helios - ([0-9a-f]{7}|dev)\)$/,
+      );
+      // A CFBundleName other than productName makes Electron miss its helper apps.
+      assert.isUndefined(extendInfo.CFBundleName);
       assert.deepStrictEqual(release.publish, [
         {
           provider: "github",
