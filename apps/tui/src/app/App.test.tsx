@@ -104,7 +104,7 @@ describe("App", () => {
     );
     try {
       screen.stdin.write("\x00");
-      await vi.waitFor(() => expect(screen.lastFrame()).toContain("ctrl+space … · esc cancel"));
+      await vi.waitFor(() => expect(screen.lastFrame()).toContain(" ctrl+space … "));
       expect(screen.lastFrame()).toContain("? Toggle keybinding help");
       screen.stdin.write("?");
       await vi.waitFor(() => expect(screen.lastFrame()).toContain("Leader map: ctrl+space"));

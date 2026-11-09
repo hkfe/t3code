@@ -40,7 +40,7 @@ describe("theme detection", () => {
 
 describe("output folding", () => {
   it("folds to ASCII without changing the cell width", () => {
-    const line = "╭─ Threads ─╮ ● Ready · ✓ 漢字 🚀 …";
+    const line = "╭─ Threads ─╮ ● Ready · ✓ 漢字 🚀 … ⚠ ⎇ ± ■";
     const folded = foldAscii(line);
     expect(folded).toMatch(/^[\u0000-\u007f]*$/);
     expect(stringWidth(folded)).toBe(stringWidth(line));
