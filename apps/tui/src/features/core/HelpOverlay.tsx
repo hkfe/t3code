@@ -1,7 +1,8 @@
 import { RegistryContext } from "@effect/atom-react";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useContext, useMemo, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { helpRows } from "../../app/keymap.ts";

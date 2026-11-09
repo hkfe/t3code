@@ -1,5 +1,4 @@
-import { Text } from "ink";
-
+import { Text } from "../../app/text.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { displayKey } from "../../app/keys.ts";
 import { useShellRegistry } from "../../app/registry.ts";

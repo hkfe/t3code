@@ -1,7 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { AtomRegistry } from "effect/reactivity";
-import { Text } from "ink";
 
+import { Text } from "../../app/text.tsx";
 import type { KeyContext, TuiFeature } from "../../app/feature.ts";
 import {
   closePane,

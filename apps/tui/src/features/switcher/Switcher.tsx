@@ -2,9 +2,10 @@ import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { minuteTick } from "@t3tools/client-runtime/clock";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import { threadLabelsOf } from "@t3tools/contracts";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useContext, useState, useSyncExternalStore } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";

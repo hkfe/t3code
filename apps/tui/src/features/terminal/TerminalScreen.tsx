@@ -3,9 +3,10 @@ import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
 import type { TerminalBufferState } from "@t3tools/client-runtime/state/terminal";
 import type { ScopedThreadRef, TerminalAttachInput } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
-import { Box, Text, usePaste } from "ink";
+import { Box, usePaste } from "ink";
 import { useContext, useEffect, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { terminalEnvironment } from "../../state/threadTerminals.ts";

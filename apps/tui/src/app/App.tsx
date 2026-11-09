@@ -1,8 +1,9 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import type { AtomRegistry } from "effect/reactivity";
-import { Box, measureElement, Text, useWindowSize, type DOMElement } from "ink";
+import { Box, measureElement, useWindowSize, type DOMElement } from "ink";
 import { useContext, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from "react";
 
+import { Text } from "./text.tsx";
 import {
   focusAtom,
   layoutAtom,
@@ -15,6 +16,7 @@ import {
 import { PaneContext, paneRoutes, panesAtom } from "../state/panes.ts";
 import { toastAtom, type Toast } from "../state/toast.ts";
 import { theme } from "../theme/theme.ts";
+import { ErrorBoundary } from "./ErrorBoundary.tsx";
 import type { TuiFeature, TuiViewFooter, TuiViewProps } from "./feature.ts";
 import { KeyRouter } from "./input.tsx";
 import { leaderGroups } from "./keymap.ts";
@@ -34,6 +36,8 @@ const LEADER_LABEL_WIDTH = 16;
 
 function RegionFrame(props: {
   readonly region: Region;
+  /** What the frame shows (view, panel, sidebar): names and resets its error boundary. */
+  readonly name: string;
   readonly width?: number;
   readonly height: number;
   readonly title?: string;
@@ -71,21 +75,20 @@ function RegionFrame(props: {
         </Text>
       )}
       {Component && (
-        <Component
-          focused={focused}
-          width={innerWidth}
-          height={Math.max(0, innerHeight - footerRows)}
-        />
+        <ErrorBoundary key={props.name} name={props.name}>
+          <Component
+            focused={focused}
+            width={innerWidth}
+            height={Math.max(0, innerHeight - footerRows)}
+          />
+        </ErrorBoundary>
       )}
       {footers.length > 0 && (
         <Box ref={footerRef} flexDirection="column" flexShrink={0}>
           {footers.map((footer) => (
-            <footer.component
-              key={footer.id}
-              focused={focused}
-              width={innerWidth}
-              height={innerHeight}
-            />
+            <ErrorBoundary key={footer.id} name={footer.id}>
+              <footer.component focused={focused} width={innerWidth} height={innerHeight} />
+            </ErrorBoundary>
           ))}
         </Box>
       )}
@@ -104,14 +107,18 @@ function StatusBar({ width }: { readonly width: number }) {
         {statusItems
           .filter((item) => item.align === "left")
           .map((item) => (
-            <item.component key={item.id} />
+            <ErrorBoundary key={item.id} name={item.id}>
+              <item.component />
+            </ErrorBoundary>
           ))}
       </Box>
       <Box gap={2} flexShrink={1}>
         {statusItems
           .filter((item) => item.align === "right")
           .map((item) => (
-            <item.component key={item.id} />
+            <ErrorBoundary key={item.id} name={item.id}>
+              <item.component />
+            </ErrorBoundary>
           ))}
       </Box>
     </Box>
@@ -209,6 +216,7 @@ function Shell() {
           {sidebarWidth > 0 && (
             <RegionFrame
               region="sidebar"
+              name="sidebar"
               width={sidebarWidth}
               height={bodyHeight}
               title="Threads"
@@ -219,6 +227,7 @@ function Shell() {
           {panel && panelWidth > 0 && (
             <RegionFrame
               region="panel"
+              name={panel.id}
               width={panelWidth}
               height={bodyHeight}
               title={panel.title}
@@ -243,6 +252,7 @@ function MainFrame(props: {
   return (
     <RegionFrame
       region="main"
+      name={props.view}
       width={props.width}
       height={props.height}
       component={registry.views.get(props.view)?.component ?? null}
@@ -289,7 +299,11 @@ function useOverlay() {
   const toastRows = useAtomValue(toastAtom) ? 1 : 0;
   const overlay = id === null ? undefined : overlays.get(id);
   if (!overlay) return null;
-  return <overlay.component focused width={columns} height={rows - STATUS_BAR_ROWS - toastRows} />;
+  return (
+    <ErrorBoundary key={overlay.id} name={overlay.id}>
+      <overlay.component focused width={columns} height={rows - STATUS_BAR_ROWS - toastRows} />
+    </ErrorBoundary>
+  );
 }
 
 export function App(props: {

@@ -1,9 +1,10 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { splitSearchText, type SearchRange } from "@t3tools/shared/paletteSearch";
 import { Atom } from "effect/reactivity";
-import { Box, Text, useApp, usePaste } from "ink";
+import { Box, useApp, usePaste } from "ink";
 import { useContext, useEffect, useMemo, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { PaletteItem, TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { displayKey, isKey } from "../../app/keys.ts";

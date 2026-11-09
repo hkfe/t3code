@@ -1,9 +1,10 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import type { StorageCleanupSettings } from "@t3tools/contracts";
 import { resolveWorktreeCleanup } from "@t3tools/shared/projectSettings";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useContext, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { serverEnvironment } from "../../state/settings.ts";

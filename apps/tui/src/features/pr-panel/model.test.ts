@@ -165,6 +165,15 @@ describe("parseAnsiLog", () => {
       { text: " done" },
       { text: "rgb" },
     ]);
+    const nested = parseAnsiLog(
+      "\x1b]8;;\x1b]52;c;ZXZpbA==\x07\x07link\x1b]8;;\x07 \x9d52;c;eA==\x07",
+    );
+    expect(
+      nested
+        .flat()
+        .map((part) => part.text)
+        .join(""),
+    ).toBe("link 52;c;eA==");
   });
 
   it("carries styles across lines and colors GitHub error lines", () => {

@@ -7,11 +7,12 @@ import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { Atom, AsyncResult } from "effect/reactivity";
-import { Box, Text, useApp, usePaste } from "ink";
+import { Box, useApp, usePaste } from "ink";
 import * as NodeChildProcess from "node:child_process";
 import * as NodeFS from "node:fs";
 import { useContext, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";

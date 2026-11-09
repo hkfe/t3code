@@ -3,9 +3,10 @@ import { resolvePullRequestDetailChecks } from "@t3tools/client-runtime/pull-req
 import type { PullRequestChecks } from "@t3tools/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { PullRequestTarget } from "../../app/feature.ts";
 import { isKey, type KeyPress } from "../../app/keys.ts";
 import { pullRequestAtoms } from "../../state/pullRequests.ts";

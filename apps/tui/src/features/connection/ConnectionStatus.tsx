@@ -6,9 +6,10 @@ import {
   type EnvironmentConnectionPhase,
 } from "@t3tools/client-runtime/connection";
 import type { EnvironmentId } from "@t3tools/contracts";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { AsyncResult } from "effect/reactivity";
 
+import { Text } from "../../app/text.tsx";
 import { environmentCatalog } from "../../state/catalog.ts";
 import { theme } from "../../theme/theme.ts";
 

@@ -1,6 +1,7 @@
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useState, type ReactNode } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { KeyPress } from "../../app/keys.ts";
 import { isKey } from "../../app/keys.ts";
 import { theme } from "../../theme/theme.ts";

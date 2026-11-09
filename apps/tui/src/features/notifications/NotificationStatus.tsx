@@ -1,7 +1,8 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
-import { Text, useStdout } from "ink";
+import { useStdout } from "ink";
 import { useContext, useEffect, type ReactNode } from "react";
 
+import { Text } from "../../app/text.tsx";
 import { theme } from "../../theme/theme.ts";
 import { startNotifications } from "./notifier.ts";
 import { statusSummaryAtom } from "./statusSummary.ts";

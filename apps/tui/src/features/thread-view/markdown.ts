@@ -109,7 +109,9 @@ function blocks(nodes: ReadonlyArray<RootContent>, width: number, base: Style): 
   return out;
 }
 
-function block(node: RootContent, width: number, base: Style): Line[] {
+function block(node: RootContent, available: number, base: Style): Line[] {
+  // Each quote and list level takes columns; deep nesting must not reach zero.
+  const width = Math.max(1, available);
   switch (node.type) {
     case "paragraph":
       return wrap(inline(node.children, base), width);

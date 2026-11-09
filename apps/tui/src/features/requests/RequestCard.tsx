@@ -25,9 +25,10 @@ import type {
   ScopedThreadRef,
 } from "@t3tools/contracts";
 import { Atom } from "effect/reactivity";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useContext, useRef, useState } from "react";
 
+import { revealControls, Text } from "../../app/text.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey, type KeyPress } from "../../app/keys.ts";
 import { appAtomRegistry } from "../../connection/runtime.ts";
@@ -249,11 +250,13 @@ function ApprovalCard(props: {
 
   // Room for the title, reason, options, hints and the "+N more" line.
   const detailRows = Math.max(2, props.height - options.length - 8);
-  const detailLines = (approval.detail ?? "").split("\n").filter((line) => line.length > 0);
+  const detailLines = revealControls(approval.detail ?? "")
+    .split("\n")
+    .filter((line) => line.length > 0);
   return (
     <Box flexDirection="column">
       <Text color={theme.warning} bold>
-        {approval.appName ? `${approval.appName}: ` : ""}
+        {approval.appName ? `${revealControls(approval.appName)}: ` : ""}
         {APPROVAL_TITLE[approval.requestKind]}
       </Text>
       {detailLines.length > 0 && (
@@ -264,7 +267,7 @@ function ApprovalCard(props: {
       )}
       {approval.reason && (
         <Text color={theme.textMuted} wrap="truncate">
-          {approval.reason}
+          {revealControls(approval.reason)}
         </Text>
       )}
       <Blocked live={live} canRespond={props.canRespond} />
@@ -275,8 +278,10 @@ function ApprovalCard(props: {
             wrap="truncate"
             color={enabled ? theme.text : theme.textFaint}
           >
-            <Text color={theme.accent}>{index + 1}</Text> {option.label}
-            {option.warning ? <Text color={theme.warning}> ⚠ {option.warning}</Text> : null}
+            <Text color={theme.accent}>{index + 1}</Text> {revealControls(option.label)}
+            {option.warning ? (
+              <Text color={theme.warning}> ⚠ {revealControls(option.warning)}</Text>
+            ) : null}
           </Text>
         ))}
         {approval.supportsFeedback && enabled && (
@@ -409,9 +414,9 @@ function QuestionCard(props: {
     <Box flexDirection="column">
       <Text color={theme.warning} bold wrap="truncate">
         {request.questions.length > 1 ? `Question ${index + 1}/${request.questions.length} · ` : ""}
-        {question.header}
+        {revealControls(question.header)}
       </Text>
-      <Text color={theme.text}>{question.question}</Text>
+      <Text color={theme.text}>{revealControls(question.question)}</Text>
       <Blocked live={live} canRespond={props.canRespond} />
       <Box flexDirection="column" marginTop={1}>
         {question.options.map((option, optionIndex) => {
@@ -429,8 +434,10 @@ function QuestionCard(props: {
             >
               <Text color={theme.accent}>{optionIndex + 1}</Text>{" "}
               <Text color={selected ? theme.accent : theme.textMuted}>{mark}</Text>{" "}
-              <Text color={theme.text}>{option.label}</Text>
-              {option.description && <Text color={theme.textFaint}> {option.description}</Text>}
+              <Text color={theme.text}>{revealControls(option.label)}</Text>
+              {option.description && (
+                <Text color={theme.textFaint}> {revealControls(option.description)}</Text>
+              )}
             </Text>
           );
         })}
