@@ -1,9 +1,10 @@
 import { AtomRegistry } from "effect/reactivity";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { render } from "ink-testing-library";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vite-plus/test";
 
+import { Text } from "./text.tsx";
 import { appAtomRegistry } from "../connection/runtime.ts";
 import { coreFeature } from "../features/core/index.tsx";
 import { features } from "../features/index.ts";
@@ -66,6 +67,19 @@ function PaneView() {
   const route = usePaneRoute();
   return <KeyEcho name={`pane ${route.thread?.threadId}`} letter="v" />;
 }
+
+function Broken(): never {
+  throw new Error("boom");
+}
+
+const brokenFeature: TuiFeature = {
+  id: "broken-test",
+  views: [{ id: "broken", component: Broken }],
+  footers: [{ id: "broken-footer", view: "broken", component: () => <Text>footer ok</Text> }],
+  statusItems: [
+    { id: "hostile", align: "left", component: () => <Text>{"a\u001b]8;;x\u0007b"}</Text> },
+  ],
+};
 
 const paneFeature: TuiFeature = { id: "pane-test", views: [{ id: "pane", component: PaneView }] };
 
@@ -132,6 +146,22 @@ describe("App", () => {
       await vi.waitFor(() => expect(screen.lastFrame()).toContain("view saw v: yes"));
       screen.stdin.write("f");
       await vi.waitFor(() => expect(screen.lastFrame()).toContain("footer saw f: yes"));
+    } finally {
+      screen.unmount();
+      registry.dispose();
+    }
+  });
+
+  it("keeps a render error inside its region and strips control bytes from text", async () => {
+    using _consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const registry = AtomRegistry.make();
+    registry.set(routeAtom, { view: "broken", thread: null });
+    const screen = render(<App registry={registry} features={[coreFeature, brokenFeature]} />);
+    try {
+      await vi.waitFor(() => expect(screen.lastFrame()).toContain("broken failed: boom"));
+      expect(screen.lastFrame()).toContain("footer ok");
+      expect(screen.lastFrame()).toContain("a]8;;xb");
+      expect(screen.lastFrame()).not.toContain("\u001b]8");
     } finally {
       screen.unmount();
       registry.dispose();

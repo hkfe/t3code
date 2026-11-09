@@ -5,9 +5,10 @@ import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/model
 import { threadLabelsOf, type OrchestrationV2WorkingPhase } from "@t3tools/contracts";
 import * as Option from "effect/Option";
 import { Atom } from "effect/reactivity";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useContext, useRef, useState, useSyncExternalStore } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey, type KeyPress } from "../../app/keys.ts";

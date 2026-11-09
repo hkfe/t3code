@@ -11,9 +11,9 @@ import {
   type ScopedThreadRef,
 } from "@t3tools/contracts";
 import type { AtomRegistry } from "effect/reactivity";
-import { Text } from "ink";
 import { useContext } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiFeature, TuiViewProps } from "../../app/feature.ts";
 import { environmentSession, requestCommands } from "../../state/requests.ts";
 import { environmentThreadDetails } from "../../state/threads.ts";

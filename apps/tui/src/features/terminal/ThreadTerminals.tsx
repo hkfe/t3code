@@ -10,9 +10,10 @@ import { projectScriptRuntimeEnv } from "@t3tools/shared/projectScripts";
 import { resolveTerminalSessionLabel } from "@t3tools/shared/terminalLabels";
 import * as Option from "effect/Option";
 import { AsyncResult } from "effect/reactivity";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useContext, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";

@@ -1,8 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId } from "@t3tools/contracts";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useState, type ComponentType, type ReactNode } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";

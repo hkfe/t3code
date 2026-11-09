@@ -2,9 +2,10 @@ import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
-import { Box, Text, usePaste } from "ink";
+import { Box, usePaste } from "ink";
 import { useContext, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { connectPairingUrl, environmentCatalog } from "../../state/catalog.ts";
 import { serverHintAtom } from "../../state/serverHint.ts";

@@ -1,9 +1,9 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { deriveThreadCheckpointSummaries } from "@t3tools/client-runtime/state/thread-checkpoints";
 import type { ScopedThreadRef } from "@t3tools/contracts";
-import { Text } from "ink";
 import { useContext, useMemo, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { orchestrationEnvironment } from "../../state/orchestration.ts";
 import { environmentThreadDetails } from "../../state/threads.ts";

@@ -4,9 +4,10 @@ import {
   resolveSnoozePresets,
 } from "@t3tools/client-runtime/state/thread-settled";
 import type { OrchestrationV2ThreadShell, ScopedThreadRef } from "@t3tools/contracts";
-import { Text, usePaste } from "ink";
+import { usePaste } from "ink";
 import { useContext, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";

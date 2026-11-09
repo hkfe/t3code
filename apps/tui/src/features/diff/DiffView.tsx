@@ -1,7 +1,8 @@
 import { useAtom } from "@effect/atom-react";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useEffect, useMemo, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { KeyHandler } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { theme } from "../../theme/theme.ts";

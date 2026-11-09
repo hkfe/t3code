@@ -1,7 +1,7 @@
 import { useAtomValue } from "@effect/atom-react";
 import type { ScopedThreadRef } from "@t3tools/contracts";
-import { Text } from "ink";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { environmentThreadDetails } from "../../state/threads.ts";
 import { routeAtom } from "../../state/ui.ts";

@@ -14,9 +14,10 @@ import { createModelSelection } from "@t3tools/shared/model";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
 import { Atom } from "effect/reactivity";
-import { Box, Text, usePaste } from "ink";
+import { Box, usePaste } from "ink";
 import { useContext, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";

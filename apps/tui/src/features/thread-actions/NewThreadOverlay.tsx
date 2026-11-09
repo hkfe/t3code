@@ -2,9 +2,9 @@ import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { ThreadId, type ProjectId, type ThreadEnvMode } from "@t3tools/contracts";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
-import { Text } from "ink";
 import { useContext, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";

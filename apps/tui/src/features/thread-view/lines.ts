@@ -1,5 +1,7 @@
 import stringWidth from "string-width";
 
+import { sanitizeTerminalText } from "../../app/text.tsx";
+
 export interface Style {
   readonly color?: string;
   readonly backgroundColor?: string;
@@ -16,7 +18,7 @@ export interface Span extends Style {
 export type Line = ReadonlyArray<Span>;
 
 export function span(text: string, style: Style = {}): Span {
-  return { ...style, text };
+  return { ...style, text: sanitizeTerminalText(text) };
 }
 
 export function lineWidth(line: Line): number {

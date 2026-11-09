@@ -1,6 +1,7 @@
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import { useMemo, useRef, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import { useRegionInput, type KeyHandler } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import type { Region } from "../../state/ui.ts";

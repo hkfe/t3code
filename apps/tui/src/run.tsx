@@ -7,6 +7,8 @@ import { render, type Instance } from "ink";
 import * as NodeOS from "node:os";
 
 import { App } from "./app/App.tsx";
+import { renderErrors } from "./app/ErrorBoundary.tsx";
+import { sanitizeTerminalText } from "./app/text.tsx";
 import { findLocalServer, RESTORE_TERMINAL, type RunOptions } from "./cli.ts";
 import { resolveConfigDir } from "./connection/configDir.ts";
 import { readUserKeybindings } from "./connection/keybindingsFile.ts";
@@ -29,6 +31,9 @@ function restoreTerminal() {
   try {
     process.stdout.write(RESTORE_TERMINAL);
     if (process.stdin.isTTY) process.stdin.setRawMode(false);
+    for (const error of renderErrors.splice(0)) {
+      process.stderr.write(`t3-tui: ${sanitizeTerminalText(error)}\n`);
+    }
   } catch {
     // The terminal is gone (SIGHUP); nothing left to restore.
   }
@@ -36,7 +41,8 @@ function restoreTerminal() {
 
 export function fail(error: unknown): never {
   restoreTerminal();
-  process.stderr.write(`t3-tui: ${error instanceof Error ? error.message : String(error)}\n`);
+  const message = error instanceof Error ? error.message : String(error);
+  process.stderr.write(`t3-tui: ${sanitizeTerminalText(message)}\n`);
   process.exit(1);
 }
 

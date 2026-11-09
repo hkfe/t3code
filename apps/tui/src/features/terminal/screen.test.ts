@@ -48,6 +48,18 @@ describe("screenRows", () => {
     term.dispose();
   });
 
+  it("shows only the visible text of OSC 8 links and OSC 52 clipboard writes", async () => {
+    const term = new xterm.Terminal({ cols: 12, rows: 1, allowProposedApi: true });
+    await write(
+      term,
+      "\x1b]8;;https://x\x07link\x1b]8;;\x07 \x1b]52;c;ZXZpbA==\x07\x9d52;c;eA==\x07ok",
+    );
+    expect(screenRows(term, 0, 1, 12, null)).toEqual([
+      [{ text: "link", underline: true }, { text: " ok" }],
+    ]);
+    term.dispose();
+  });
+
   it("cuts rows to the width without splitting a wide character", async () => {
     const term = new xterm.Terminal({ cols: 8, rows: 1, allowProposedApi: true });
     await write(term, "ab漢字");

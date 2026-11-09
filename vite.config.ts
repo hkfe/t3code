@@ -388,6 +388,27 @@ export default defineConfig({
         },
       },
       {
+        files: ["apps/tui/src/**"],
+        excludeFiles: ["apps/tui/src/app/text.tsx"],
+        rules: {
+          "eslint/no-restricted-imports": [
+            "error",
+            {
+              paths: [
+                ...RESTRICTED_IMPORT_PATHS,
+                RESTRICTED_PULL_REQUEST_GLYPH_IMPORTS,
+                {
+                  name: "ink",
+                  importNames: ["Text"],
+                  message:
+                    "Use Text from apps/tui/src/app/text.tsx: Ink passes OSC 8 links in untrusted text to the terminal.",
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
         files: ["apps/web/src/components/pullRequest/pullRequestIcons.tsx"],
         rules: { "eslint/no-restricted-imports": ["error", { paths: RESTRICTED_IMPORT_PATHS }] },
       },

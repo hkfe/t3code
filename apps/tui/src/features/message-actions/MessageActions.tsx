@@ -7,9 +7,9 @@ import {
 import { ThreadId, type ScopedThreadRef } from "@t3tools/contracts";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
-import { Text } from "ink";
 import { useContext, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { composerReplyTargetAtom } from "../../state/composer.ts";

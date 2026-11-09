@@ -2,9 +2,9 @@ import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import { THREAD_LABEL_COLORS, type ThreadLabel } from "@t3tools/contracts";
 import * as Equal from "effect/Equal";
 import * as Option from "effect/Option";
-import { Text } from "ink";
 import { useContext, useEffect, useState } from "react";
 
+import { Text } from "../../app/text.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { serverEnvironment } from "../../state/settings.ts";
