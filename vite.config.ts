@@ -19,6 +19,7 @@ const TEST_CONFIG_PACKAGES = [
   "apps/desktop",
   "apps/mobile",
   "apps/server",
+  "apps/tui",
   "apps/web",
   "packages/client-runtime",
 ];
