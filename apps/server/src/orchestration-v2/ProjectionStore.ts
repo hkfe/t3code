@@ -81,9 +81,13 @@ import {
   isOrchestrationV2SupersededInterrupt,
 } from "@t3tools/shared/orchestrationV2Timeline";
 import {
-  deriveBlockedOnThreadWait,
+  deriveThreadWaitCount,
   derivePendingBackgroundWork,
 } from "@t3tools/shared/orchestrationV2PendingBackgroundWork";
+import {
+  WORKING_PHASE_TURN_ITEM_TYPES,
+  deriveWorkingPhase,
+} from "@t3tools/shared/orchestrationV2WorkingPhase";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -978,6 +982,8 @@ type PayloadRow = {
 type ShellPendingTurnItemRow = PayloadRow & {
   readonly thread_id: string;
   readonly owning_provider_instance_id: string | null;
+  /** 1 for a running run's most recent tool item, read only for its working phase. */
+  readonly latest_tool: number;
 };
 
 type ShellThreadRow = {
@@ -1478,6 +1484,11 @@ function secretRequestAsPendingInput(
   };
 }
 
+const threadWaitFields = (threadWaitCount: number) => ({
+  blockedOnThreadWait: threadWaitCount > 0,
+  threadWaitCount,
+});
+
 /**
  * A secret card is answered while its agent waits in the run. A link card's
  * agent asked without waiting, so the card waits on the user after its run,
@@ -1609,7 +1620,8 @@ export function threadShellFromProjection(
         (item) => item.runId === latestRun.id && item.type === "run_interrupt_request",
       ),
     activeRunId: activeRun?.id ?? null,
-    blockedOnThreadWait: deriveBlockedOnThreadWait({ activeRun, turnItems: projection.turnItems }),
+    ...threadWaitFields(deriveThreadWaitCount({ activeRun, turnItems: projection.turnItems })),
+    workingPhase: deriveWorkingPhase({ activeRun, turnItems: projection.turnItems }),
     activityRunStatus: activityRun?.status ?? null,
     activityRunStartedAt:
       activityRun === null ? null : orchestrationV2RunWorkStartedAt(activityRun),
@@ -1727,6 +1739,8 @@ type ShellThreadState = {
   readonly latestRunStopRequested: boolean;
   readonly activeRunId: RunId | null;
   readonly blockedOnThreadWait: boolean;
+  readonly threadWaitCount: number;
+  readonly workingPhase: OrchestrationV2ThreadShell["workingPhase"];
   readonly activityRunStatus: ShellActivityRunStatus | null;
   readonly activityRunStartedAt: DateTime.Utc | null;
   readonly lastError: string | null;
@@ -1887,6 +1901,8 @@ function shellFromState(input: {
     latestRunStopRequested: input.state.latestRunStopRequested,
     activeRunId: input.state.activeRunId,
     blockedOnThreadWait: input.state.blockedOnThreadWait,
+    threadWaitCount: input.state.threadWaitCount,
+    workingPhase: input.state.workingPhase,
     activityRunStatus: input.state.activityRunStatus,
     activityRunStartedAt: input.state.activityRunStartedAt,
     status: input.state.latestRunStatus,
@@ -6342,7 +6358,8 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       threadIds?: ReadonlyArray<ThreadId>,
       activeRunIds: ReadonlyArray<string> = [],
     ) => sql<ShellPendingTurnItemRow>`
-      SELECT i.thread_id, i.payload_json, p.provider_instance_id AS owning_provider_instance_id
+      SELECT i.thread_id, i.payload_json, p.provider_instance_id AS owning_provider_instance_id,
+        0 AS latest_tool
       FROM orchestration_v2_projection_turn_items i
       LEFT JOIN orchestration_v2_projection_provider_threads p
         ON p.provider_thread_id = i.provider_thread_id
@@ -6358,11 +6375,23 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           : sql`
         -- Preserve the pending-item partial index; read other work only from running runs.
         UNION ALL
-        SELECT i.thread_id, i.payload_json, NULL AS owning_provider_instance_id
+        SELECT i.thread_id, i.payload_json, NULL AS owning_provider_instance_id, 0 AS latest_tool
         FROM orchestration_v2_projection_turn_items i
         WHERE i.run_id IN (SELECT value FROM json_each(${encodeIdList(activeRunIds)}))
           AND i.type IN ('file_change', 'file_search', 'web_search', 'compaction')
           AND i.status IN ('running', 'waiting')
+        UNION ALL
+        SELECT i.thread_id, i.payload_json, NULL AS owning_provider_instance_id, 1 AS latest_tool
+        FROM orchestration_v2_projection_turn_items i
+        WHERE i.turn_item_id IN (
+          SELECT (
+            SELECT j.turn_item_id FROM orchestration_v2_projection_turn_items j
+            WHERE j.run_id = run.value
+              AND j.type IN (SELECT value FROM json_each(${encodeIdList(WORKING_PHASE_TURN_ITEM_TYPES)}))
+            ORDER BY j.ordinal DESC, j.turn_item_id DESC LIMIT 1
+          )
+          FROM json_each(${encodeIdList(activeRunIds)}) run
+        )
       `
       }
     `;
@@ -6424,7 +6453,13 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       }
 
       const pendingTurnItemsByThreadId = new Map<ThreadId, Array<OrchestrationV2TurnItem>>();
+      const latestToolItemsByThreadId = new Map<ThreadId, OrchestrationV2TurnItem>();
       for (const row of input.pendingTurnItemRows) {
+        if (row.latest_tool === 1) {
+          const turnItem = yield* decodeTurnItemPayload(row.payload_json);
+          latestToolItemsByThreadId.set(ThreadId.make(row.thread_id), turnItem);
+          continue;
+        }
         const turnItem = {
           ...(yield* decodeTurnItemPayload(row.payload_json)),
           ...(row.owning_provider_instance_id === null
@@ -6439,7 +6474,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
         pendingTurnItemsByThreadId.set(threadId, existing);
       }
 
-      return { providerThreadsByThreadId, pendingTurnItemsByThreadId };
+      return { providerThreadsByThreadId, pendingTurnItemsByThreadId, latestToolItemsByThreadId };
     });
 
     const getSettlementCandidates: ProjectionStoreV2Shape["getSettlementCandidates"] = (threadId) =>
@@ -6662,6 +6697,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           ThreadId,
           ReadonlyArray<OrchestrationV2TurnItem>
         >;
+        readonly latestToolItemsByThreadId: ReadonlyMap<ThreadId, OrchestrationV2TurnItem>;
       }) {
         const {
           row,
@@ -6670,6 +6706,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           shellItemCountsByThreadId,
           providerThreadsByThreadId,
           pendingTurnItemsByThreadId,
+          latestToolItemsByThreadId,
         } = input;
         const thread = yield* decodeThreadPayload(row.payload_json);
         const latestUserAuthoredMessageAt =
@@ -6754,6 +6791,11 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
                 : DateTime.makeUnsafe(row.blocking_run_completed_at);
           }
         }
+        const runningActiveRun =
+          row.active_run_id === null || row.active_run_status !== "running"
+            ? null
+            : { id: RunId.make(row.active_run_id), status: "running" as const };
+        const latestToolItem = latestToolItemsByThreadId.get(thread.id);
         const pendingBackgroundTasks = [
           ...derivePendingBackgroundWork({
             latestRun:
@@ -6780,12 +6822,15 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           latestRunCompletedAt,
           latestRunStopRequested,
           activeRunId: row.active_run_id === null ? null : RunId.make(row.active_run_id),
-          blockedOnThreadWait: deriveBlockedOnThreadWait({
-            activeRun:
-              row.active_run_id === null || row.active_run_status !== "running"
-                ? null
-                : { id: RunId.make(row.active_run_id), status: "running" },
-            turnItems: pendingTurnItemsByThreadId.get(thread.id) ?? [],
+          ...threadWaitFields(
+            deriveThreadWaitCount({
+              activeRun: runningActiveRun,
+              turnItems: pendingTurnItemsByThreadId.get(thread.id) ?? [],
+            }),
+          ),
+          workingPhase: deriveWorkingPhase({
+            activeRun: runningActiveRun,
+            turnItems: latestToolItem === undefined ? [] : [latestToolItem],
           }),
           activityRunStartedAt:
             row.activity_run_started_at === null
@@ -6915,7 +6960,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
         itemCountRows,
       });
       const shellItemCountsByThreadId = shellItemCountMap(shellItemCountRows);
-      const { providerThreadsByThreadId, pendingTurnItemsByThreadId } =
+      const { providerThreadsByThreadId, pendingTurnItemsByThreadId, latestToolItemsByThreadId } =
         yield* pendingBackgroundDataByThreadId({ providerThreadRows, pendingTurnItemRows });
       const states = yield* Effect.forEach(threadRows, (row) =>
         shellThreadStateFromRow({
@@ -6925,6 +6970,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           shellItemCountsByThreadId,
           providerThreadsByThreadId,
           pendingTurnItemsByThreadId,
+          latestToolItemsByThreadId,
         }),
       );
       const statesByThreadId = new Map(states.map((state) => [state.thread.id, state]));
@@ -7222,8 +7268,11 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               itemCountRows,
             });
             const shellItemCountsByThreadId = shellItemCountMap(shellItemCountRows);
-            const { providerThreadsByThreadId, pendingTurnItemsByThreadId } =
-              yield* pendingBackgroundDataByThreadId({ providerThreadRows, pendingTurnItemRows });
+            const {
+              providerThreadsByThreadId,
+              pendingTurnItemsByThreadId,
+              latestToolItemsByThreadId,
+            } = yield* pendingBackgroundDataByThreadId({ providerThreadRows, pendingTurnItemRows });
 
             const states = yield* Effect.forEach([...rowsByThreadId.values()], (row) =>
               shellThreadStateFromRow({
@@ -7233,6 +7282,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
                 shellItemCountsByThreadId,
                 providerThreadsByThreadId,
                 pendingTurnItemsByThreadId,
+                latestToolItemsByThreadId,
               }),
             );
             const statesByThreadId = new Map(states.map((state) => [state.thread.id, state]));

@@ -4,6 +4,8 @@ import * as NodeModule from "node:module";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import * as NodeURL from "node:url";
+import { formatAppDisplayName } from "../../../packages/shared/src/appDisplayName.ts";
+import { resolveBuildCommitHash } from "../../../scripts/lib/public-config.ts";
 import { ensureElectronRuntime } from "./ensure-electron-runtime.mjs";
 
 const isDevelopment = Boolean(process.env.VITE_DEV_SERVER_URL);
@@ -14,6 +16,8 @@ const devBundleIdSuffix = NodePath.basename(repoRoot)
   .toLowerCase()
   .replaceAll(/[^a-z0-9]+/g, "");
 const APP_DISPLAY_NAME = isDevelopment ? "T3 Code (Dev)" : "T3 Code (Beta)";
+// The macOS app menu shows CFBundleName; the bundle path keeps APP_DISPLAY_NAME.
+const APP_MENU_NAME = formatAppDisplayName(resolveBuildCommitHash());
 const APP_BUNDLE_ID = isDevelopment
   ? `com.t3tools.t3code.dev.${devBundleIdSuffix || "local"}`
   : "com.t3tools.t3code";
@@ -262,8 +266,8 @@ function ensureMacIconIcns(runtimeDir) {
 
 function resolveMacBundleInfoPlistStrings(executableName) {
   return {
-    CFBundleDisplayName: APP_DISPLAY_NAME,
-    CFBundleName: APP_DISPLAY_NAME,
+    CFBundleDisplayName: APP_MENU_NAME,
+    CFBundleName: APP_MENU_NAME,
     CFBundleIdentifier: APP_BUNDLE_ID,
     CFBundleExecutable: executableName,
     CFBundleIconFile: "icon.icns",
@@ -361,6 +365,7 @@ function buildMacLauncher(electronBinaryPath) {
     sourceAppMtimeMs: NodeFS.statSync(sourceAppBundlePath).mtimeMs,
     iconMtimeMs: NodeFS.statSync(iconPath).mtimeMs,
     appBundleId: APP_BUNDLE_ID,
+    appMenuName: APP_MENU_NAME,
     appProtocolSchemes: APP_PROTOCOL_SCHEMES,
   };
 

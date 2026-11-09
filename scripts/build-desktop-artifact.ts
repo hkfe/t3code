@@ -15,6 +15,7 @@ import {
   type DirectoryRecord,
 } from "@electron/asar";
 
+import { formatAppDisplayName } from "@t3tools/shared/appDisplayName";
 import { fromYaml } from "@t3tools/shared/schemaYaml";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { clerkFrontendApiHostnameFromPublishableKey } from "@t3tools/shared/relayAuth";
@@ -40,7 +41,7 @@ import {
   findInlinedExternalPackages,
   selectCliRuntimeExternalDependencies,
 } from "./lib/cli-external-packages.ts";
-import { loadRepoEnv } from "./lib/public-config.ts";
+import { loadRepoEnv, resolveBuildCommitHash } from "./lib/public-config.ts";
 import { selectDesktopRuntimeExternalDependencies } from "./lib/desktop-external-packages.ts";
 import { resolveCatalogDependencies } from "./lib/resolve-catalog.ts";
 
@@ -2819,11 +2820,15 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   if (platform === "mac") {
     const path = yield* Path.Path;
     const repoRoot = yield* RepoRoot;
+    const appMenuName = formatAppDisplayName(resolveBuildCommitHash());
     buildConfig.mac = {
       target: target === "dmg" ? [target, "zip"] : [target],
       icon: "icon.icns",
       category: "public.app-category.developer-tools",
       extendInfo: {
+        // The app menu shows CFBundleName; productName still names the .app and installer.
+        CFBundleName: appMenuName,
+        CFBundleDisplayName: appMenuName,
         // macOS 26 offers Messages/Mail codes in every text field unless opted out.
         NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac: true,
         NSLocalNetworkUsageDescription:

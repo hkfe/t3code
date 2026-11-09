@@ -3,6 +3,7 @@ import {
   sourceControlClients,
 } from "@t3tools/client-runtime/source-control-clients";
 import {
+  COMPOSER_CONTEXT_REPLY_TEXT_MAX_CHARS,
   COMPOSER_CONTEXT_REVIEW_DIFF_MAX_CHARS,
   COMPOSER_CONTEXT_REVIEW_TEXT_MAX_CHARS,
   COMPOSER_CONTEXT_TERMINAL_TEXT_MAX_CHARS,
@@ -19,6 +20,7 @@ import type {
   OrchestrationMessageContext,
   PreviewAnnotationContextRecord,
   PreviewAnnotationPayload,
+  ReplyContextRecord,
   ReviewCommentContextRecord,
   TerminalContextRecord,
   ThreadContextRecord,
@@ -28,6 +30,8 @@ import { upgradeLegacyContextMessage } from "@t3tools/shared/composerContextLega
 import { encodeComposerContextFragment } from "@t3tools/shared/composerContextClipboard";
 import {
   collectComposerContextReferences,
+  formatComposerContextReference,
+  replaceComposerContextReferences,
   sanitizeComposerContextLabel,
   toKindScopedComposerContextId,
 } from "@t3tools/shared/composerContextReferences";
@@ -182,6 +186,35 @@ export function environmentContextRecord(
   };
 }
 
+export function replyContextAuthor(role: ReplyContextRecord["role"]): string {
+  return role === "assistant" ? "T3 Code" : "You";
+}
+
+/** Quotes a message: inline chips become their labels, and a nested reply quote is dropped. */
+export function replyContextRecord(message: {
+  id: MessageId;
+  role: ReplyContextRecord["role"];
+  text: string;
+}): ReplyContextRecord {
+  const text = replaceComposerContextReferences(message.text, (reference) =>
+    reference.kind === "reply" ? "" : reference.label,
+  );
+  return {
+    version: 1,
+    kind: "reply",
+    contextId: toKindScopedComposerContextId("reply", message.id),
+    label: sanitizeComposerContextLabel(`Reply to ${replyContextAuthor(message.role)}`, "reply"),
+    messageId: message.id,
+    role: message.role,
+    text: clampContextText(text.trim(), COMPOSER_CONTEXT_REPLY_TEXT_MAX_CHARS),
+  };
+}
+
+/** Leads the message with the quote's chip so the timeline and the agent both see it first. */
+export function withReplyReference(text: string, reply: ReplyContextRecord): string {
+  return `${formatComposerContextReference(reply)}\n\n${text}`;
+}
+
 export function terminalContextRecord(context: TerminalContextDraft): TerminalContextRecord {
   return {
     version: 1,
@@ -326,6 +359,7 @@ export function buildMessageContext(input: {
   previewAnnotations: ReadonlyArray<PreviewAnnotationPayload>;
   threadContexts?: ReadonlyArray<ThreadContextRecord>;
   environmentContexts?: ReadonlyArray<EnvironmentContextRecord>;
+  reply?: ReplyContextRecord | undefined;
   attachments?: ReadonlyArray<BoundComposerAttachment>;
 }): OrchestrationMessageContext | undefined {
   const screenshotAttachmentIds = new Set(
@@ -338,6 +372,7 @@ export function buildMessageContext(input: {
     ...input.reviewComments.map(reviewCommentContextRecord),
     ...(input.threadContexts ?? []),
     ...(input.environmentContexts ?? []),
+    ...(input.reply ? [input.reply] : []),
     ...input.previewAnnotations.map((annotation) =>
       previewAnnotationContextRecord(annotation, {
         screenshotContextId: screenshotAttachmentIds.has(annotation.id) ? annotation.id : undefined,

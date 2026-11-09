@@ -42,6 +42,7 @@ import {
   scopeThreadRef,
 } from "@t3tools/client-runtime/environment";
 import { createModelSelection } from "@t3tools/shared/model";
+import { useComposerReplyStore } from "~/composerReplyStore";
 import { type SetStateAction, useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
@@ -85,6 +86,7 @@ import { ensureInlineContextReferences } from "../../lib/composerContextReferenc
 import {
   buildMessageContext,
   previewAnnotationContextReference,
+  withReplyReference,
 } from "../../lib/composerContextRecords";
 import { environmentServerConfigsAtom } from "../../state/server";
 import { threadEnvironment } from "../../state/threads";
@@ -886,6 +888,11 @@ export function useComposerSend(input: ComposerSendInput) {
       setThreadError(threadIdForSend, "Select a base branch before sending in New worktree mode.");
       return;
     }
+    // A reply quotes into new turns only, and needs text the quote can lead.
+    const replyForSend =
+      multipleModelSelections === null && messageTextForSend
+        ? useComposerReplyStore.getState().byThreadKey[routeThreadKey]
+        : undefined;
     // Records bind attachments by the id each side knows: the local id for the optimistic
     // row, the upload id (or local id on the data-URL path) on the wire; the server
     // rebinds them to the persisted id.
@@ -896,6 +903,7 @@ export function useComposerSend(input: ComposerSendInput) {
         previewAnnotations: composerPreviewAnnotationsSnapshot,
         threadContexts: composerThreadContextsSnapshot,
         environmentContexts: composerEnvironmentContextsSnapshot,
+        reply: replyForSend,
         attachments: composerAttachmentsSnapshot.map((attachment, index) => ({
           attachment,
           attachmentId: attachmentIds[index] ?? attachment.id,
@@ -911,7 +919,9 @@ export function useComposerSend(input: ComposerSendInput) {
       model: ctxSelectedModel,
       models: ctxSelectedProviderModels,
       effort: ctxSelectedPromptEffort,
-      text: messageTextForSend || ATTACHMENT_ONLY_BOOTSTRAP_PROMPT,
+      text: replyForSend
+        ? withReplyReference(messageTextForSend, replyForSend)
+        : messageTextForSend || ATTACHMENT_ONLY_BOOTSTRAP_PROMPT,
     });
     if (composerRef.current?.validateProviderInput(outgoingMessageText) === false) {
       return;
@@ -1243,6 +1253,7 @@ export function useComposerSend(input: ComposerSendInput) {
     if (sentDraftThreadRef) markPromotedDraftThreadByRef(sentDraftThreadRef);
     promptRef.current = "";
     clearComposerDraftContent(composerDraftTarget);
+    if (replyForSend) useComposerReplyStore.getState().setReply(routeThreadKey, null);
     composerRef.current?.resetCursorState();
 
     const title = deriveThreadTitleSeed({
@@ -1462,6 +1473,7 @@ export function useComposerSend(input: ComposerSendInput) {
         // The restored draft clones its images, so the sent copies are no longer used.
         optimisticBlobPreviews.release(optimisticMessage);
         const retryComposerImages = restoreComposerDraft(composerDraftTarget, sendSnapshot);
+        if (replyForSend) useComposerReplyStore.getState().setReply(routeThreadKey, replyForSend);
         if (currentRouteThreadKeyRef.current === routeThreadKey) {
           promptRef.current = messageTextForSend;
           composerImagesRef.current = retryComposerImages;

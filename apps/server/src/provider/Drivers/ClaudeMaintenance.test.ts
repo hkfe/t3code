@@ -345,6 +345,7 @@ it.layer(NodeServices.layer)("ClaudeMaintenance", (it) => {
               subscribe: Effect.succeed(Stream.empty),
             },
             shouldRunBackgroundWork: () => Effect.succeed(true),
+            awaitProviderStatusDemand: Effect.void,
             resolveAttachmentPath: () => null,
           }),
         ),

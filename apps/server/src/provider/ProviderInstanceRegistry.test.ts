@@ -67,6 +67,7 @@ const windowsHost = HostProcess.Platform.defaultValue() === "win32";
 const TEST_EPOCH = DateTime.makeUnsafe("1970-01-01T00:00:00.000Z");
 
 const layerBackgroundPolicyAlwaysRun = Layer.mock(BackgroundPolicy.BackgroundPolicy)({
+  awaitProviderStatusDemand: Effect.void,
   reportClientActivity: () => Effect.void,
   removeRpcClient: () => Effect.void,
   snapshot: Effect.succeed({

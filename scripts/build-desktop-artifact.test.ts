@@ -529,6 +529,9 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
 
       assert.isNull(preview.publish);
       assert.isNull(previewChannel.publish);
+      assert.equal(release.productName, "T3 Code (Beta)");
+      const { extendInfo } = release.mac as { extendInfo: Record<string, unknown> };
+      assert.match(String(extendInfo.CFBundleName), /^T3-Code \(helios - ([0-9a-f]{7}|dev)\)$/);
       assert.deepStrictEqual(release.publish, [
         {
           provider: "github",
