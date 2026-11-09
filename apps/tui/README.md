@@ -4,15 +4,36 @@ A terminal client for T3 Code, built with [Ink](https://github.com/vadimdemedes/
 T3 server over the same WebSocket protocol as the web and mobile clients, through
 `@t3tools/client-runtime`.
 
-## Run it
+## Install
+
+From a checkout, with Node 24 or later and [vite-plus](https://viteplus.dev) (`vp`):
 
 ```sh
-vp i                                      # once per checkout
-vp run --filter @t3tools/tui build        # bundles src/ to dist/bin.mjs
-node apps/tui/dist/bin.mjs                # or: vp run --filter @t3tools/tui start
+apps/tui/scripts/install-local.sh
 ```
 
+It runs `vp install` when `node_modules` is missing, builds `dist/bin.mjs` and links it as
+`~/.local/bin/t3-tui`. Run it again after a pull to update. Put `~/.local/bin` on your `PATH`.
+
+The bundle has every dependency inside it, so `t3-tui` needs only `node` at run time. Without the
+script: `vp run --filter @t3tools/tui build`, then run `node apps/tui/dist/bin.mjs`.
 `vp run --filter @t3tools/tui dev` rebuilds on save; restart the TUI to see the change.
+
+## Run
+
+```sh
+t3-tui                                    # open the saved servers
+t3-tui pair 'http://127.0.0.1:3773/pair#token=ABCD1234'
+t3-tui --server http://192.168.1.20:3773  # name the server the pairing screen points to
+t3-tui --config-dir /tmp/t3-tui-test      # sessions in another directory, for this run only
+t3-tui --version
+t3-tui --help
+```
+
+Exit codes: `0` after `ctrl+q`, `1` on an error (pairing failed, crash), `2` on bad usage or
+without an interactive terminal, `128 + n` after signal `n` (`143` for SIGTERM). On quit, crash,
+SIGINT, SIGTERM or SIGHUP the TUI leaves the alternate screen, shows the cursor and turns off raw
+mode, mouse and focus reporting and bracketed paste.
 
 ## Pair with a server
 
@@ -23,17 +44,47 @@ The TUI saves one bearer session per server. It needs a pairing URL
 - **Server started from a terminal:** `t3 serve` prints `Pairing URL:` at startup. For a server that
   is already running, `t3 pair` (in a checkout: `node apps/server/src/bin.ts pair`) mints a new one.
 
-Then either pass it on the command line:
+Then either pass it with `t3-tui pair <url>` (or `--server <url>`), or start the TUI, focus the
+main pane, and paste the URL. After that, `t3-tui` connects on its own.
 
-```sh
-node apps/tui/dist/bin.mjs pair 'http://127.0.0.1:3773/pair#token=ABCD1234'
-```
-
-or start the TUI, focus the main pane, and paste the URL.
+With no saved session, the pairing screen names the server of the desktop app (or of `t3 serve`)
+on this machine when it runs. The TUI finds it in `$T3CODE_HOME/userdata/server-runtime.json`
+(default `~/.t3`), which it only reads. That file holds no credential, so you still pair once.
 
 Sessions live in `$T3_TUI_CONFIG_DIR`, else `$XDG_CONFIG_HOME/t3-tui`, else `~/.config/t3-tui`, in
 `connections.json` (mode 0600). `--config-dir <dir>` overrides the location for one run. The TUI
-never reads or writes T3 home (`~/.t3`).
+never writes to T3 home (`~/.t3`).
+
+## Troubleshooting
+
+- **`alt` keys do nothing on macOS.** Turn on Option as Meta: Terminal.app › Settings › Profiles ›
+  Keyboard › "Use Option as Meta key"; iTerm2 › Profiles › Keys › Left Option key "Esc+"; Ghostty
+  `macos-option-as-alt = true`; kitty `macos_option_as_alt yes`; WezTerm
+  `send_composed_key_when_left_alt_is_pressed = false`. `ctrl` bindings work without it.
+- **Copy (`y`) does nothing.** Copy uses OSC 52. iTerm2 (allow clipboard access in Settings ›
+  General › Selection), Ghostty, kitty, WezTerm and Alacritty support it; Terminal.app does not.
+  In tmux, `set -g set-clipboard on`.
+- **`shift+enter` sends.** Only terminals with the kitty keyboard protocol report it (kitty,
+  Ghostty, WezTerm, iTerm2 with "Report keys using CSI u"). Use `ctrl+j` or `alt+enter`.
+- **Colors look wrong.** The theme uses 24-bit color. In tmux, add
+  `set -as terminal-features ",*:RGB"`.
+- **`needs an interactive terminal`.** stdin and stdout must be a terminal; do not pipe them.
+- **`pairing failed`.** The token is single use and expires. Make a new pairing link and check that
+  this machine can reach the URL.
+- **The terminal stays broken after `kill -9`.** SIGKILL cannot be caught. Run `reset`.
+
+## Smoke test
+
+```sh
+vp run --filter @t3tools/tui smoke            # add -- --keep to keep the temp directory
+```
+
+It builds the server and TUI bundles, copies `~/t3-playground` (or `$T3_SMOKE_PLAYGROUND`) with
+providers off into a temp directory, and starts a production server on a free port in 5750-5799.
+Then it pairs the TUI in a pseudo-terminal, waits for the sidebar, opens the first thread, quits
+with `ctrl+q`, reopens with the saved session and sends SIGTERM. Both exits must restore the
+terminal. It stops the server at the end and keeps the temp directory (server log, screen output)
+on failure. The playground needs at least one thread.
 
 ## Keys
 
