@@ -815,6 +815,9 @@ function PullRequestCodeTab({
       const viewedMark = filesViewedEnabled
         ? `e${isFileViewed(path) ? "v" : ""}${isFileViewedStale(path) ? "s" : ""}`
         : "";
+      // The header draws this file's counts and its share of the largest change.
+      const stat = fileStats.get(fileKey);
+      const statMark = `${stat?.additions ?? 0}/${stat?.deletions ?? 0}/${largestChange}`;
       return {
         id: fileKey,
         type: "diff" as const,
@@ -822,7 +825,7 @@ function PullRequestCodeTab({
         annotations,
         collapsed,
         version: fnv1a32(
-          `${collapsed ? "1" : "0"}:${viewedMark}:${largestChange}:${annotationsVersion}`,
+          `${collapsed ? "1" : "0"}:${viewedMark}:${statMark}:${annotationsVersion}`,
         ),
       };
     },
