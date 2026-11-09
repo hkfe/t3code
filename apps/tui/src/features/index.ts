@@ -8,6 +8,7 @@ import { requestsFeature } from "./requests/index.tsx";
 import { sidebarFeature } from "./sidebar/index.ts";
 import { splitPanesFeature } from "./split-panes/index.tsx";
 import { threadActionsFeature } from "./thread-actions/index.ts";
+import { notificationsFeature } from "./notifications/index.ts";
 import { threadViewFeature } from "./thread-view/index.ts";
 
 /** Every feature, one line each. Earlier features win keybinding ties. */
@@ -22,4 +23,5 @@ export const features: ReadonlyArray<TuiFeature> = [
   messageActionsFeature,
   composerFeature,
   splitPanesFeature,
+  notificationsFeature,
 ];

@@ -3,6 +3,7 @@ import { useApp, useInput } from "ink";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { PaneContext } from "../state/panes.ts";
+import { terminalFocusedAtom } from "../state/terminal.ts";
 import { focusAtom, overlayAtom, type Region } from "../state/ui.ts";
 import type { TuiCommand, TuiKeybinding } from "./feature.ts";
 import { findKeybinding, type KeyPress } from "./keys.ts";
@@ -60,6 +61,11 @@ export function KeyRouter(props: {
   const [handlers] = useState(() => new Map<Target, Set<{ readonly current: Registered }>>());
 
   useInput((input, key) => {
+    // Focus reports (ESC [I, ESC [O) arrive as plain input; text fields must not see them.
+    if (input === "[I" || input === "[O") {
+      registry.set(terminalFocusedAtom, input === "[I");
+      return;
+    }
     const press = { input, key };
     const overlay = registry.get(overlayAtom);
     const focus = registry.get(focusAtom);
