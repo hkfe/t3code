@@ -494,6 +494,9 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.sidebarAutoSettleOnMerge !== DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge
       ? ["Auto-settle merged threads"]
       : []),
+    ...(settings.autoLabelThreads !== DEFAULT_UNIFIED_SETTINGS.autoLabelThreads
+      ? ["Label new threads automatically"]
+      : []),
     ...(settings.autoResumeLimitedThreads !== DEFAULT_UNIFIED_SETTINGS.autoResumeLimitedThreads
       ? ["Resume after usage limits"]
       : []),
@@ -653,6 +656,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       sidebarAutoSettleAfterDays: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleAfterDays,
       sidebarAutoSettleKeepPullRequests: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleKeepPullRequests,
       sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
+      autoLabelThreads: DEFAULT_UNIFIED_SETTINGS.autoLabelThreads,
       autoResumeLimitedThreads: DEFAULT_UNIFIED_SETTINGS.autoResumeLimitedThreads,
       snoozeLimitedThreads: DEFAULT_UNIFIED_SETTINGS.snoozeLimitedThreads,
       snoozePresets: DEFAULT_UNIFIED_SETTINGS.snoozePresets,
@@ -1593,6 +1597,22 @@ export function ThreadsSettingsPanel() {
       {!isProjectScope ? (
         <SettingsSection id="labels" title="Labels">
           <ThreadLabelsRow />
+          <SettingsRow
+            serverScoped
+            {...searchableSetting("auto-label-threads")}
+            description="The model that writes thread titles also picks up to 3 labels for a new thread. It never changes labels that a thread already has."
+            settingKeys={["autoLabelThreads"]}
+            control={
+              <ScopedSwitch
+                settingKeys={["autoLabelThreads"]}
+                checked={settings.autoLabelThreads}
+                onCheckedChange={(checked) =>
+                  updateSettings({ autoLabelThreads: Boolean(checked) })
+                }
+                aria-label="Label new threads automatically"
+              />
+            }
+          />
         </SettingsSection>
       ) : null}
 

@@ -436,6 +436,14 @@ export const SETTINGS_SEARCH_ITEMS = [
     scope: "environment-defaults",
   },
   {
+    id: "auto-label-threads",
+    title: "Label new threads automatically",
+    to: "/settings/threads",
+    searchTerms: ["auto labels tags categorize title model"],
+    environmentOnly: true,
+    scope: "environment-defaults",
+  },
+  {
     id: "snooze-options",
     title: "Snooze options",
     to: "/settings/threads",
