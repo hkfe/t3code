@@ -3,6 +3,7 @@ import { commandPaletteFeature } from "./command-palette/index.ts";
 import { composerFeature } from "./composer/index.ts";
 import { connectionFeature } from "./connection/index.ts";
 import { coreFeature } from "./core/index.tsx";
+import { messageActionsFeature } from "./message-actions/index.ts";
 import { requestsFeature } from "./requests/index.tsx";
 import { sidebarFeature } from "./sidebar/index.ts";
 import { splitPanesFeature } from "./split-panes/index.tsx";
@@ -18,6 +19,7 @@ export const features: ReadonlyArray<TuiFeature> = [
   commandPaletteFeature,
   requestsFeature,
   threadActionsFeature,
+  messageActionsFeature,
   composerFeature,
   splitPanesFeature,
 ];

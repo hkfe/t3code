@@ -75,4 +75,11 @@ The composer sits under an open thread and takes the keys while the main pane ha
 
 Drafts live in memory per thread until you quit.
 
+### Messages
+
+With the keys on the thread view (`escape` from the composer), `[` / `]` select a message. Then `r`
+replies to it, `y` copies its text, `f` forks the thread from an assistant response, and `o` jumps
+to the message a reply quotes. Copy uses the OSC 52 escape: the terminal must allow clipboard
+writes (Terminal.app does not; tmux needs `set -g set-clipboard on`).
+
 Building a feature? Read [CONTRIBUTING-TUI.md](./CONTRIBUTING-TUI.md).

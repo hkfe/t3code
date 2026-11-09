@@ -116,6 +116,12 @@ function ThreadComposer(props: {
   const items = useAtomValue(environmentThreadDetails.visibleTurnItemsAtom(thread));
   // The composer has the keyboard while the main pane is focused; escape hands keys to the view.
   const [active, setActive] = useState(true);
+  // A new reply target (from the thread view's message actions) gives the composer the keys.
+  const [seenReply, setSeenReply] = useState(reply);
+  if (reply !== seenReply) {
+    setSeenReply(reply);
+    if (reply !== null) setActive(true);
+  }
   const [history, setHistory] = useState<{
     readonly index: number;
     readonly saved: EditorState;
