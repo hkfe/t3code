@@ -41,4 +41,8 @@ never reads or writes T3 home (`~/.t3`).
 right panel; `ctrl+b` toggles the sidebar; `alt+←` / `alt+→` resize the focused side region;
 `ctrl+w` closes the right panel; `ctrl+q` or `ctrl+c` quits.
 
+In the sidebar: `j` / `k` or arrows move, `g` / `G` jump to the top or bottom, `enter` opens a
+thread or folds a section, `h` / `l` (or `←` / `→`, `space`) fold and unfold sections and project
+folders, and `/` filters threads as you type (`escape` clears it).
+
 Building a feature? Read [CONTRIBUTING-TUI.md](./CONTRIBUTING-TUI.md).
