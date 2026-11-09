@@ -5,6 +5,7 @@ import {
   ForwardCompatibleArray,
   GuestMessageId,
   GuestShareId,
+  MessageId,
   NonNegativeInt,
   PositiveInt,
   ThreadId,
@@ -25,6 +26,7 @@ export const COMPOSER_CONTEXT_KINDS = [
   "skill",
   "thread",
   "environment",
+  "reply",
 ] as const;
 export type KnownComposerContextKind = (typeof COMPOSER_CONTEXT_KINDS)[number];
 
@@ -40,6 +42,7 @@ const COMPOSER_CONTEXT_ELEMENT_STYLES_MAX_CHARS = 8_000;
 export const COMPOSER_CONTEXT_REVIEW_TEXT_MAX_CHARS = 16_000;
 export const COMPOSER_CONTEXT_REVIEW_DIFF_MAX_CHARS = 32_000;
 const COMPOSER_CONTEXT_PREVIEW_COMMENT_MAX_CHARS = 8_000;
+export const COMPOSER_CONTEXT_REPLY_TEXT_MAX_CHARS = 2_000;
 
 export const ComposerContextId = TrimmedNonEmptyString.check(
   Schema.isMaxLength(CONTEXT_ID_MAX_CHARS),
@@ -224,6 +227,16 @@ export const EnvironmentContextRecord = Schema.Struct({
 });
 export type EnvironmentContextRecord = typeof EnvironmentContextRecord.Type;
 
+/** An earlier message in the same thread that the user replies to. */
+export const ReplyContextRecord = Schema.Struct({
+  ...recordBase,
+  kind: Schema.Literal("reply"),
+  messageId: MessageId,
+  role: Schema.Literals(["user", "assistant"]),
+  text: BoundedString(COMPOSER_CONTEXT_REPLY_TEXT_MAX_CHARS),
+});
+export type ReplyContextRecord = typeof ReplyContextRecord.Type;
+
 const isJson = Schema.is(Schema.Json);
 
 /** Excludes known discriminators so malformed known records fail their own schema. */
@@ -255,6 +268,7 @@ export const KnownComposerContextRecord = Schema.Union([
   SkillContextRecord,
   ThreadContextRecord,
   EnvironmentContextRecord,
+  ReplyContextRecord,
 ]);
 export type KnownComposerContextRecord = typeof KnownComposerContextRecord.Type;
 

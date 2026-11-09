@@ -355,6 +355,11 @@ function formatComposerContextProviderPayload(record: KnownComposerContextRecord
         `environmentId: ${record.environmentId}`,
         "The user means this machine. Not linked here yet: call t3_environment_link with this environmentId. Linked: pass it as environmentId, or target.environmentId for delegate_task.",
       ].join("\n");
+    case "reply":
+      return [
+        `The user is replying to this earlier ${record.role === "assistant" ? "assistant" : "user"} message in this thread:`,
+        indent(record.text),
+      ].join("\n");
   }
 }
 

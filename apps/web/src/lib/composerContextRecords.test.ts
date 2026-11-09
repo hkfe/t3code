@@ -25,11 +25,13 @@ import {
   pullRequestContextKindLabel,
   resolveUserMessageContext,
   selectedMessageContextFragment,
+  replyContextRecord,
   reviewCommentContextRecord,
   terminalContextRecord,
   terminalContextReference,
   terminalContextDraftFromRecord,
   uploadedAttachmentContextRecord,
+  withReplyReference,
 } from "./composerContextRecords";
 
 const decodeMessageContext = Schema.decodeUnknownSync(OrchestrationMessageContext);
@@ -291,6 +293,31 @@ describe("composerContextRecords", () => {
     expect(decodeMessageContext({ version: 1, records: [terminal] }).records).toMatchObject([
       { kind: "terminal", text: terminal.text },
     ]);
+  });
+
+  it("quotes a reply as plain text, leads the message with it, and still encodes", () => {
+    const reply = replyContextRecord({
+      id: MessageId.make("msg-1"),
+      role: "user",
+      text: `[Reply to T3 Code](t3-context://v1/reply/reply_msg-0)\n\nSee [log](t3-context://v1/terminal/ctx_t) ${"x".repeat(3_000)}`,
+    });
+    expect(reply).toMatchObject({ kind: "reply", messageId: "msg-1", label: "Reply to You" });
+    expect(reply.text.startsWith("See log xx")).toBe(true);
+    expect(reply.text.length).toBeLessThanOrEqual(2_000);
+    expect(reply.text.endsWith("… truncated …")).toBe(true);
+
+    const text = withReplyReference("Why?", reply);
+    expect(text).toBe(`[Reply to You](t3-context://v1/reply/${reply.contextId})\n\nWhy?`);
+    const context = buildMessageContext({
+      terminalContexts: [],
+      reviewComments: [],
+      previewAnnotations: [],
+      reply,
+    });
+    expect(decodeMessageContext(context).records).toEqual([reply]);
+    expect(resolveUserMessageContext({ text, context }).recordsById.get(reply.contextId)).toEqual(
+      reply,
+    );
   });
 
   it("finds the destination collision for different legacy terminal messages", () => {
