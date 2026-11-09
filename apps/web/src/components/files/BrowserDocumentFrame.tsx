@@ -8,6 +8,7 @@ import {
 } from "@t3tools/contracts";
 import {
   type HtmlRenderShortcut,
+  htmlRenderError,
   htmlRenderShortcutsMessage,
   htmlRenderThemeFragment,
   htmlRenderThemeMessage,
@@ -16,6 +17,7 @@ import {
   readHtmlRenderImageRequest,
   readHtmlRenderKeyDown,
   readHtmlRenderLinkRequest,
+  readHtmlRenderSendRequest,
 } from "@t3tools/shared/htmlRender";
 import {
   isMacPlatform,
@@ -183,6 +185,8 @@ export function HtmlRenderDocument(props: {
   readonly onContentHeight?: (height: number) => void;
   /** Reports fullscreen changes so virtualized rows can stay mounted. */
   readonly onFullscreenChange?: ((fullscreen: boolean) => void) | undefined;
+  /** Sends a page's `t3.send` text as a user message; without it, sends are refused. */
+  readonly onSendMessage?: ((text: string) => Promise<void>) | undefined;
 }) {
   const theme = useHtmlRenderTheme();
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -277,13 +281,37 @@ export function HtmlRenderDocument(props: {
   // Links, keys and images require frame focus and recent reader activity: a page can take
   // focus by script, so this blocks opens on load, though not a page that waits for the
   // reader's next input.
+  const sending = useRef(false);
   const onFrameMessage = useEffectEvent((frame: HTMLIFrameElement, event: MessageEvent) => {
     const height = readHtmlRenderContentHeight(event.data);
     if (height !== undefined) {
       props.onContentHeight?.(height);
       return;
     }
-    if (document.activeElement !== frame || navigator.userActivation?.isActive === false) return;
+    const activated =
+      document.activeElement === frame && navigator.userActivation?.isActive !== false;
+    const send = readHtmlRenderSendRequest(event.data);
+    if (send !== undefined) {
+      const reply = (message: object) => frame.contentWindow?.postMessage(message, "*");
+      const fail = (message: string) => reply(htmlRenderError(send.id, message));
+      const onSend = props.onSendMessage;
+      if ("error" in send) return fail(send.error);
+      if (onSend === undefined) return fail("t3.send is not available here.");
+      if (!activated) return fail("t3.send works only right after a click or key press.");
+      if (sending.current) return fail("A message is already sending.");
+      sending.current = true;
+      void onSend(send.text)
+        .then(
+          () => reply(htmlRenderResult(send.id)),
+          (cause: unknown) =>
+            fail(cause instanceof Error ? cause.message : "The message was not sent."),
+        )
+        .finally(() => {
+          sending.current = false;
+        });
+      return;
+    }
+    if (!activated) return;
     const linkRequest = readHtmlRenderLinkRequest(event.data);
     if (linkRequest !== undefined) {
       open(linkRequest.url, linkRequest);

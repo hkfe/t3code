@@ -1,11 +1,14 @@
 import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
 import { useNavigation } from "@react-navigation/native";
-import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
+import { CommandId, MessageId, type EnvironmentId, type ThreadId } from "@t3tools/contracts";
 import {
+  htmlRenderError,
   htmlRenderFileName,
   htmlRenderFrameHeight,
   htmlRenderThemeFragment,
+  htmlRenderResult,
   htmlRenderThemeMessage,
+  readHtmlRenderSendRequest,
   type HtmlRenderReference,
   type HtmlRenderTheme,
 } from "@t3tools/shared/htmlRender";
@@ -17,8 +20,11 @@ import { SymbolView } from "../../components/ui/AppSymbol";
 import { AppText as Text } from "../../components/ui/AppText";
 import { mobileHtmlRenderTheme } from "../../lib/htmlRenderTheme";
 import { tryOpenExternalUrl } from "../../lib/openExternalUrl";
+import { uuidv4 } from "../../lib/uuid";
 import { useAssetUrlState, useRefreshAssetUrl } from "../../state/assets";
+import { enqueueThreadOutboxMessage } from "../../state/thread-outbox";
 import { useAppearancePreferences } from "../settings/appearance/AppearancePreferencesProvider";
+import { confirm } from "./McpAppWebView";
 
 const ROW_BOTTOM_MARGIN = 8;
 const FULL_SCREEN_GUTTER = 16;
@@ -39,10 +45,20 @@ function useHtmlRenderTheme() {
   });
 }
 
+function postToPage(view: WebView<object> | null, message: object) {
+  view?.injectJavaScript(`window.postMessage(${JSON.stringify(message)}, "*"); true;`);
+}
+
 function postTheme(view: WebView<object> | null, theme: HtmlRenderTheme) {
-  view?.injectJavaScript(
-    `window.postMessage(${JSON.stringify(htmlRenderThemeMessage(theme))}, "*"); true;`,
-  );
+  postToPage(view, htmlRenderThemeMessage(theme));
+}
+
+function readSendRequest(data: string) {
+  try {
+    return readHtmlRenderSendRequest(JSON.parse(data));
+  } catch {
+    return undefined;
+  }
 }
 
 const OVERFLOW_MESSAGE_TYPE = "t3-html-render-overflow";
@@ -78,6 +94,8 @@ export function HtmlRenderWebView(props: {
   readonly title: string;
   readonly nested: boolean;
   readonly onLoadError?: () => void;
+  /** Sends a page's `t3.send` text as a user message. Only nested pages can send. */
+  readonly onSendMessage?: (text: string) => Promise<void>;
 }) {
   const theme = useHtmlRenderTheme();
   const [initialTheme] = useState(theme);
@@ -104,6 +122,29 @@ export function HtmlRenderWebView(props: {
     setLoaded(false);
     setOverflow(NO_OVERFLOW);
     setGeneration((value) => value + 1);
+  };
+  const sending = useRef(false);
+  const sendFromPage = async (data: string) => {
+    const send = readSendRequest(data);
+    if (send === undefined) return;
+    const fail = (message: string) =>
+      postToPage(webView.current, htmlRenderError(send.id, message));
+    if ("error" in send) return fail(send.error);
+    if (props.onSendMessage === undefined) return fail("t3.send is not available here.");
+    if (sending.current) return fail("A message is already sending.");
+    sending.current = true;
+    // WebViews cannot prove user activation, so the reader confirms each message.
+    const approved = await confirm(`Send this message from ${props.title}?`, send.text, "Send");
+    const sent = approved
+      ? await props.onSendMessage(send.text).then(
+          () => undefined,
+          (cause: unknown) =>
+            cause instanceof Error ? cause.message : "The message was not sent.",
+        )
+      : "Declined by the user.";
+    sending.current = false;
+    if (sent === undefined) postToPage(webView.current, htmlRenderResult(send.id));
+    else fail(sent);
   };
   const scrollable = !props.nested || overflow.x || overflow.y;
   return (
@@ -156,6 +197,7 @@ export function HtmlRenderWebView(props: {
               onMessage: (event: WebViewMessageEvent) => {
                 const next = readOverflowMessage(event.nativeEvent.data);
                 if (next !== null) setOverflow(next);
+                else void sendFromPage(event.nativeEvent.data);
               },
             }
           : {})}
@@ -218,6 +260,18 @@ export function ThreadHtmlRender(props: {
             title={title}
             nested
             onLoadError={handleLoadError}
+            onSendMessage={(text) =>
+              enqueueThreadOutboxMessage({
+                environmentId: props.environmentId,
+                threadId: props.threadId,
+                messageId: MessageId.make(uuidv4()),
+                commandId: CommandId.make(uuidv4()),
+                text,
+                attachments: [],
+                dispatchMode: "queue",
+                createdAt: new Date().toISOString(),
+              })
+            }
           />
         ) : failed || asset._tag === "Failure" ? (
           <Pressable

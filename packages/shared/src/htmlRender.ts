@@ -229,7 +229,7 @@ export const HTML_RENDER_THEME_GUIDE = [
   "The base sheet sets background, text, and font.",
 ].join(" ");
 
-export const HTML_RENDER_LAYOUT_GUIDE = [
+const HTML_RENDER_LAYOUT_GUIDE = [
   `Frame width is reply width (${HTML_RENDER_COLUMN_WIDTH}px desktop, about 360px phones), on the thread background.`,
   "Leave html, body, and the outer element with no background color, no outer card, border, banner title, or side padding. This wins over any rule that sets a page background.",
   "T3 adds an overridable 8px html gutter for selection rings and shadows. Use fluid widths within it.",
@@ -237,7 +237,20 @@ export const HTML_RENDER_LAYOUT_GUIDE = [
   "Let content set the height. Do not use vh units or height:100% on html or body. Both are rejected or loop.",
 ].join(" ");
 
+// Loaded on demand through html_guide, so it costs context only when a page is made.
+export const HTML_RENDER_GUIDE = [
+  "Use a page only when it does what text cannot: a chart, diagram, side-by-side mapping, clickable steps, or controls that get an answer. Otherwise reply in text.",
+  HTML_RENDER_LAYOUT_GUIDE,
+  HTML_RENDER_THEME_GUIDE,
+  "Look like T3 Code: plain, quiet, and dense. 14px text, 12px secondary text in --muted-foreground, 1px var(--border) lines, var(--radius) corners. No gradients, glow, emojis, or decorative icons. Keep hover and selected states subtle, for example var(--muted) or var(--accent-surface).",
+  "Accessibility: use real button, label, and form elements. Every control works by keyboard and has a visible name. Do not use color as the only signal. No looping animation; honor prefers-reduced-motion.",
+  'Reply controls: `await t3.send(text, data)` sends text as a user message in this thread, with optional JSON data below it, and starts your next turn. The reader sees it. It works only right after a click or key press in the page and rejects otherwise, also in html_preview. Write text as the reader would say it, for example "Lost me at the parser step". Put the ids your next turn needs in data. Show a sent state in the page after it resolves. Use it for choices, forms, and feedback such as Clear, Lost me here, and Go deeper.',
+  "The page cannot reach T3 Code, its storage, or the parent page. Remote URLs load, but prefer inline data.",
+].join("\n\n");
+
 const HOST_CONTEXT_CHANGED_METHOD = "ui/notifications/host-context-changed";
+const SEND_METHOD = "t3/send";
+const HTML_RENDER_MAX_SEND_LENGTH = 8_000;
 const OPEN_LINK_METHOD = "ui/open-link";
 const SIZE_CHANGED_METHOD = "ui/notifications/size-changed";
 // Custom bridge forwards app shortcuts because focused frames otherwise capture them.
@@ -339,6 +352,38 @@ export function htmlRenderResult(id: string | number) {
   return { jsonrpc: "2.0", id, result: {} } as const;
 }
 
+export function htmlRenderError(id: string | number, message: string) {
+  return { jsonrpc: "2.0", id, error: { code: -32000, message } } as const;
+}
+
+/** A `t3.send(text, data)` call, as the user message text it sends, or why it cannot. */
+export function readHtmlRenderSendRequest(
+  data: unknown,
+):
+  | { readonly id: string | number; readonly text: string }
+  | { readonly id: string | number; readonly error: string }
+  | undefined {
+  if (typeof data !== "object" || data === null) return undefined;
+  const { jsonrpc, id, method, params } = data as Record<string, unknown>;
+  if (jsonrpc !== "2.0" || method !== SEND_METHOD) return undefined;
+  if (typeof id !== "string" && typeof id !== "number") return undefined;
+  const { text, data: payload } = (
+    typeof params === "object" && params !== null ? params : {}
+  ) as Record<string, unknown>;
+  const body = typeof text === "string" ? text.trim() : "";
+  if (body === "") return { id, error: "t3.send needs message text." };
+  let json: string | undefined;
+  try {
+    json = payload === undefined ? undefined : JSON.stringify(payload, null, 2);
+  } catch {
+    return { id, error: "t3.send data must be JSON." };
+  }
+  const message = json === undefined ? body : `${body}\n\n\`\`\`json\n${json}\n\`\`\``;
+  return message.length > HTML_RENDER_MAX_SEND_LENGTH
+    ? { id, error: `t3.send messages are limited to ${HTML_RENDER_MAX_SEND_LENGTH} characters.` }
+    : { id, text: message };
+}
+
 const THEME_FRAGMENT_KEY = "t3-theme";
 
 export function htmlRenderThemeFragment(theme: HtmlRenderTheme): string {
@@ -369,7 +414,7 @@ function rootRule(theme: HtmlRenderTheme): string {
 
 // Apply overridable theme CSS before paint and strip the fragment before routing; framed navigation uses the client.
 // Forward shortcuts after page handlers; text fields retain their keys.
-const BOOTSTRAP_SCRIPT = `(function(){var s=document.getElementById("t3-theme"),n=0;if(!s)return;var b=${JSON.stringify(BASE_CSS)};function a(t){if(!t||typeof t!=="object"||!t.variables||typeof t.variables!=="object")return;var c=":root{color-scheme:"+(t.appearance==="light"?"light":"dark")+";";for(var k in t.variables){if(/^--[a-z0-9-]+$/.test(k))c+=k+":"+String(t.variables[k]).replace(/[;{}<>]/g,"")+";";}s.textContent=c+"}"+b;}try{var m=/[#&]${THEME_FRAGMENT_KEY}=([^&]*)/.exec(location.hash);if(m){a(JSON.parse(decodeURIComponent(m[1])));history.replaceState(history.state,"",location.pathname+location.search);}}catch(e){}window.addEventListener("message",function(e){var d=e.data,p=d&&d.params;if(d&&d.jsonrpc==="2.0"&&d.method===${JSON.stringify(HOST_CONTEXT_CHANGED_METHOD)}&&p&&p.styles)a({appearance:p.theme,variables:p.styles.variables});});document.addEventListener("click",function(e){var l=e.isTrusted?e.composedPath().find(function(t){return t&&t.matches&&t.matches("a[href]");}):null,u;if(!l)return;try{u=new URL(l.getAttribute("href"),document.baseURI);}catch(x){return;}if(!/^https?:$/.test(u.protocol)||u.href.split("#")[0]===location.href.split("#")[0])return;if(window.parent!==window){e.preventDefault();window.parent.postMessage({jsonrpc:"2.0",id:"t3-link-"+(++n),method:${JSON.stringify(OPEN_LINK_METHOD)},params:{url:u.href,metaKey:e.metaKey,ctrlKey:e.ctrlKey}},"*");}else{l.setAttribute("target","_blank");l.setAttribute("rel","noopener");}},true);if(window.parent!==window){var h,o,z=function(){var r=document.documentElement,v=Math.ceil(r.scrollHeight>r.clientHeight?r.scrollHeight:r.getBoundingClientRect().height);if(v===h)return;h=v;window.parent.postMessage({jsonrpc:"2.0",method:${JSON.stringify(SIZE_CHANGED_METHOD)},params:{height:v}},"*");};if(window.ResizeObserver){o=new ResizeObserver(z);o.observe(document.documentElement);}document.addEventListener("DOMContentLoaded",function(){if(o&&document.body)o.observe(document.body);z();});window.addEventListener("load",z);window.addEventListener("click",function(e){var t=e.composedPath()[0],u;if(!e.isTrusted||e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||!t||t.tagName!=="IMG"||t.closest("a[href],button"))return;u=t.currentSrc||t.src;if(u)setTimeout(function(){if(!e.defaultPrevented)window.parent.postMessage({jsonrpc:"2.0",method:${JSON.stringify(OPEN_IMAGE_METHOD)},params:{src:u,name:t.alt||t.title||""}},"*");});});var K=[],B=[],C=${JSON.stringify(EVENT_CODE_SHORTCUT_KEYS)};window.addEventListener("message",function(e){var d=e.data,p=d&&d.params;if(e.source===window.parent&&d&&d.jsonrpc==="2.0"&&d.method===${JSON.stringify(SHORTCUTS_METHOD)}&&p&&Array.isArray(p.shortcuts)&&Array.isArray(p.blocked)){K=p.shortcuts;B=p.blocked;}});window.addEventListener("keydown",function(e){var t=e.composedPath()[0],c=e.code||"",l=e.key.toLowerCase(),x=/^[a-z]$/.test(l)?[l]:[l,/^Key[A-Z]$/.test(c)?c.slice(3).toLowerCase():"",C.hasOwnProperty(c)?C[c]:""],f,m=function(s){return s&&s.metaKey===e.metaKey&&s.ctrlKey===e.ctrlKey&&s.shiftKey===e.shiftKey&&s.altKey===e.altKey&&x.indexOf(s.key)>-1;};if(!e.isTrusted||e.isComposing||e.getModifierState("AltGraph")&&!/^[a-z0-9]$/i.test(e.key)||t&&(t.isContentEditable||/^(?:INPUT|TEXTAREA|SELECT)$/.test(t.tagName))||!K.some(m)||B.some(m))return;f=function(v){window.removeEventListener("keydown",f);if(v!==e||e.defaultPrevented)return;e.preventDefault();window.parent.postMessage({jsonrpc:"2.0",method:${JSON.stringify(KEY_DOWN_METHOD)},params:{key:e.key,code:e.code,metaKey:e.metaKey,ctrlKey:e.ctrlKey,shiftKey:e.shiftKey,altKey:e.altKey,repeat:e.repeat}},"*");};window.addEventListener("keydown",f);setTimeout(function(){window.removeEventListener("keydown",f);});},true);}})();`;
+const BOOTSTRAP_SCRIPT = `(function(){var s=document.getElementById("t3-theme"),n=0;if(!s)return;var b=${JSON.stringify(BASE_CSS)};function a(t){if(!t||typeof t!=="object"||!t.variables||typeof t.variables!=="object")return;var c=":root{color-scheme:"+(t.appearance==="light"?"light":"dark")+";";for(var k in t.variables){if(/^--[a-z0-9-]+$/.test(k))c+=k+":"+String(t.variables[k]).replace(/[;{}<>]/g,"")+";";}s.textContent=c+"}"+b;}try{var m=/[#&]${THEME_FRAGMENT_KEY}=([^&]*)/.exec(location.hash);if(m){a(JSON.parse(decodeURIComponent(m[1])));history.replaceState(history.state,"",location.pathname+location.search);}}catch(e){}var Q={},q=0;window.t3={send:function(t,d){return new Promise(function(y,r){var i="t3-send-"+(++q),m={jsonrpc:"2.0",id:i,method:${JSON.stringify(SEND_METHOD)},params:{text:String(t),data:d}};Q[i]=[y,r];try{if(window.parent!==window)window.parent.postMessage(m,"*");else if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify(m));else throw 0;}catch(x){delete Q[i];r(new Error("t3.send is not available here."));}});}};window.addEventListener("message",function(e){var d=e.data,c=d&&typeof d.id==="string"&&Q[d.id];if(e.source!==window.parent||!c||d.jsonrpc!=="2.0")return;delete Q[d.id];if(d.error)c[1](new Error(String(d.error.message)));else c[0]();});window.addEventListener("message",function(e){var d=e.data,p=d&&d.params;if(d&&d.jsonrpc==="2.0"&&d.method===${JSON.stringify(HOST_CONTEXT_CHANGED_METHOD)}&&p&&p.styles)a({appearance:p.theme,variables:p.styles.variables});});document.addEventListener("click",function(e){var l=e.isTrusted?e.composedPath().find(function(t){return t&&t.matches&&t.matches("a[href]");}):null,u;if(!l)return;try{u=new URL(l.getAttribute("href"),document.baseURI);}catch(x){return;}if(!/^https?:$/.test(u.protocol)||u.href.split("#")[0]===location.href.split("#")[0])return;if(window.parent!==window){e.preventDefault();window.parent.postMessage({jsonrpc:"2.0",id:"t3-link-"+(++n),method:${JSON.stringify(OPEN_LINK_METHOD)},params:{url:u.href,metaKey:e.metaKey,ctrlKey:e.ctrlKey}},"*");}else{l.setAttribute("target","_blank");l.setAttribute("rel","noopener");}},true);if(window.parent!==window){var h,o,z=function(){var r=document.documentElement,v=Math.ceil(r.scrollHeight>r.clientHeight?r.scrollHeight:r.getBoundingClientRect().height);if(v===h)return;h=v;window.parent.postMessage({jsonrpc:"2.0",method:${JSON.stringify(SIZE_CHANGED_METHOD)},params:{height:v}},"*");};if(window.ResizeObserver){o=new ResizeObserver(z);o.observe(document.documentElement);}document.addEventListener("DOMContentLoaded",function(){if(o&&document.body)o.observe(document.body);z();});window.addEventListener("load",z);window.addEventListener("click",function(e){var t=e.composedPath()[0],u;if(!e.isTrusted||e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||!t||t.tagName!=="IMG"||t.closest("a[href],button"))return;u=t.currentSrc||t.src;if(u)setTimeout(function(){if(!e.defaultPrevented)window.parent.postMessage({jsonrpc:"2.0",method:${JSON.stringify(OPEN_IMAGE_METHOD)},params:{src:u,name:t.alt||t.title||""}},"*");});});var K=[],B=[],C=${JSON.stringify(EVENT_CODE_SHORTCUT_KEYS)};window.addEventListener("message",function(e){var d=e.data,p=d&&d.params;if(e.source===window.parent&&d&&d.jsonrpc==="2.0"&&d.method===${JSON.stringify(SHORTCUTS_METHOD)}&&p&&Array.isArray(p.shortcuts)&&Array.isArray(p.blocked)){K=p.shortcuts;B=p.blocked;}});window.addEventListener("keydown",function(e){var t=e.composedPath()[0],c=e.code||"",l=e.key.toLowerCase(),x=/^[a-z]$/.test(l)?[l]:[l,/^Key[A-Z]$/.test(c)?c.slice(3).toLowerCase():"",C.hasOwnProperty(c)?C[c]:""],f,m=function(s){return s&&s.metaKey===e.metaKey&&s.ctrlKey===e.ctrlKey&&s.shiftKey===e.shiftKey&&s.altKey===e.altKey&&x.indexOf(s.key)>-1;};if(!e.isTrusted||e.isComposing||e.getModifierState("AltGraph")&&!/^[a-z0-9]$/i.test(e.key)||t&&(t.isContentEditable||/^(?:INPUT|TEXTAREA|SELECT)$/.test(t.tagName))||!K.some(m)||B.some(m))return;f=function(v){window.removeEventListener("keydown",f);if(v!==e||e.defaultPrevented)return;e.preventDefault();window.parent.postMessage({jsonrpc:"2.0",method:${JSON.stringify(KEY_DOWN_METHOD)},params:{key:e.key,code:e.code,metaKey:e.metaKey,ctrlKey:e.ctrlKey,shiftKey:e.shiftKey,altKey:e.altKey,repeat:e.repeat}},"*");};window.addEventListener("keydown",f);setTimeout(function(){window.removeEventListener("keydown",f);});},true);}})();`;
 
 function bootstrapMarkup(markup: string): string {
   const dark = htmlRenderTheme(T3_CODE_DARK_THEME_COLORS, "dark");

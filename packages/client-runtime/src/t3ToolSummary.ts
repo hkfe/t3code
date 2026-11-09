@@ -472,6 +472,9 @@ export function summarizeT3ToolCalls(
     case "html-render":
       label = phrase("Rendered", "render", quantity(selected.length, "HTML page"));
       break;
+    case "html-guide":
+      label = phrase("Read", "read", "the HTML guide");
+      break;
     case "capabilities":
       label = phrase("Checked", "check", `orchestration capabilities ${times}`);
       break;

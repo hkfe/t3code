@@ -1,4 +1,5 @@
 import { OrchestratorMcpFailure } from "@t3tools/contracts";
+import { HTML_RENDER_GUIDE } from "@t3tools/shared/htmlRender";
 import * as Effect from "effect/Effect";
 
 import * as HtmlRender from "../../../htmlRender/HtmlRender.ts";
@@ -51,6 +52,7 @@ const handlers = {
       };
     }),
   ),
+  html_guide: McpToolAccess.reads(() => Effect.succeed({ guide: HTML_RENDER_GUIDE })),
 } satisfies McpToolAccess.Handlers<typeof HtmlToolkit.tools>;
 
 export const layerPreview = McpToolAccess.toLayer(HtmlPreviewToolkit, {
@@ -59,4 +61,5 @@ export const layerPreview = McpToolAccess.toLayer(HtmlPreviewToolkit, {
 
 export const layerRender = McpToolAccess.toLayer(HtmlRenderToolkit, {
   html_render: handlers.html_render,
+  html_guide: handlers.html_guide,
 });

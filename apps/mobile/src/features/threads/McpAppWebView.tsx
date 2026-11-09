@@ -74,7 +74,7 @@ const commandFailure = (result: {
   );
 };
 
-const confirm = (title: string, message: string, action: string) =>
+export const confirm = (title: string, message: string, action: string) =>
   new Promise<boolean>((resolve) => {
     Dialog.alert(
       title,

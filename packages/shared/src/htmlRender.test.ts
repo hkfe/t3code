@@ -4,6 +4,7 @@ import {
   injectHtmlRenderBootstrap,
   readHtmlRenderImageRequest,
   readHtmlRenderLinkRequest,
+  readHtmlRenderSendRequest,
 } from "./htmlRender.ts";
 import { htmlRenderFromToolItem } from "./toolOutput.ts";
 
@@ -130,5 +131,31 @@ describe("htmlRenderFromToolItem", () => {
     ] as const) {
       expect(htmlRenderFromToolItem({ toolName, output })).toEqual(reference);
     }
+  });
+});
+
+describe("readHtmlRenderSendRequest", () => {
+  const request = (params: unknown) => ({
+    jsonrpc: "2.0",
+    id: "t3-send-1",
+    method: "t3/send",
+    params,
+  });
+
+  it("sends trimmed text, with data as a JSON block, and refuses what it cannot send", () => {
+    expect(readHtmlRenderSendRequest(request({ text: " Clear " }))).toEqual({
+      id: "t3-send-1",
+      text: "Clear",
+    });
+    expect(readHtmlRenderSendRequest(request({ text: "Go deeper", data: { line: 4 } }))).toEqual({
+      id: "t3-send-1",
+      text: 'Go deeper\n\n```json\n{\n  "line": 4\n}\n```',
+    });
+    expect(readHtmlRenderSendRequest(request({ text: " " }))).toHaveProperty("error");
+    expect(readHtmlRenderSendRequest(request({ text: "x".repeat(8_001) }))).toHaveProperty("error");
+    expect(readHtmlRenderSendRequest(request({ text: "x", data: 1n }))).toHaveProperty("error");
+    expect(readHtmlRenderSendRequest({ ...request({ text: "x" }), method: "ui/open-link" })).toBe(
+      undefined,
+    );
   });
 });
