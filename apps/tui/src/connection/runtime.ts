@@ -18,6 +18,7 @@ import {
   ThreadHistoryController,
 } from "@t3tools/client-runtime/state/threads";
 import { RelayWebClientId } from "@t3tools/contracts/relay";
+import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Stream from "effect/Stream";
@@ -111,6 +112,7 @@ const layerPlatform = Layer.mergeAll(
   layerNoEnvironmentCache,
   layerStorage,
   Socket.layerWebSocketConstructorGlobal,
+  SecureRandom.layerWebCrypto,
 );
 
 const layerSnapshotLoaders = Layer.mergeAll(
