@@ -82,7 +82,7 @@ export interface SidebarInput {
 }
 
 // Copied from apps/web/src/components/Sidebar.logic.ts (resolveSidebarThreadStatus); candidate for client-runtime.
-function resolveThreadStatus(thread: EnvironmentThreadShell): SidebarThreadStatus {
+export function resolveThreadStatus(thread: EnvironmentThreadShell): SidebarThreadStatus {
   if (thread.hasPendingApprovals || thread.pendingSubagentRequest === "approval") return "approval";
   if (thread.hasPendingUserInput || thread.pendingSubagentRequest === "user_input") return "input";
   if ((thread.pendingGuestMessageCount ?? 0) > 0) return "request";

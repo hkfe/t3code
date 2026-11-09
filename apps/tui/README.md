@@ -45,6 +45,10 @@ right panel; `ctrl+b` toggles the sidebar; `alt+←` / `alt+→` resize the focu
 `↑`/`↓` or `ctrl+n`/`ctrl+p` move, `enter` runs, `esc` closes. The web app also opens it with
 Cmd+Shift+P, which terminals cannot send.
 
+`ctrl+x` opens the agent overview: threads that need you, working ones with a live timer, and
+recent ones as cards. Arrows or `h` `j` `k` `l` move, `enter` or `1`-`9` open, `esc` closes. The web
+app uses Option+`` ` ``, which works here too when Option sends Meta.
+
 In the sidebar: `j` / `k` or arrows move, `g` / `G` jump to the top or bottom, `enter` opens a
 thread or folds a section, `h` / `l` (or `←` / `→`, `space`) fold and unfold sections and project
 folders, and `/` filters threads as you type (`escape` clears it).
