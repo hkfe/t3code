@@ -111,7 +111,9 @@ function Workspace({
   const [branch, setBranch] = useState<string | null>(null);
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
   const canCreate = useAtomValue(vcsEnvironment.createWorktree.permissionAtom(ref.environmentId));
-  usePaste((text) => setBranch((current) => (current === null ? null : current + text.trim())));
+  usePaste((text) => setBranch((current) => (current === null ? null : current + text.trim())), {
+    isActive: focused && branch !== null,
+  });
 
   // As mobile: create the worktree from the current branch, then point the thread at it.
   const createWorktree = async (name: string) => {
