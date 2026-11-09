@@ -47,15 +47,21 @@ apps/tui/src/
 
 What a feature can add (all optional, see `app/feature.ts`):
 
-| Field         | Where it shows                                    | Selected by                     |
-| ------------- | ------------------------------------------------- | ------------------------------- |
-| `sidebar`     | Left region body. Only one feature may set it.    | always                          |
-| `views`       | Main region.                                      | `routeAtom.view`                |
-| `panels`      | Right region, with a title line.                  | `layoutAtom.panel` (null = off) |
-| `overlays`    | Replaces the regions; status bar stays.           | `overlayAtom` (null = off)      |
-| `statusItems` | Status bar, `align: "left"` or `"right"`.         | always                          |
-| `commands`    | Run by keybindings; later by the command palette. | id                              |
-| `keybindings` | Global keys.                                      | key + `when`                    |
+| Field            | Where it shows                                        | Selected by                     |
+| ---------------- | ----------------------------------------------------- | ------------------------------- |
+| `sidebar`        | Left region body. Only one feature may set it.        | always                          |
+| `views`          | Main region.                                          | `routeAtom.view`                |
+| `panels`         | Right region, with a title line.                      | `layoutAtom.panel` (null = off) |
+| `overlays`       | Replaces the regions; status bar stays.               | `overlayAtom` (null = off)      |
+| `statusItems`    | Status bar, `align: "left"` or `"right"`.             | always                          |
+| `commands`       | Run by keybindings and listed in the command palette. | id                              |
+| `keybindings`    | Global keys; the palette shows the first as a hint.   | key + `when`                    |
+| `paletteSources` | More command palette rows (threads, projects...).     | the palette's query             |
+
+A `PaletteSource` returns rows from atoms through `get`; the palette filters, ranks and highlights
+them. Recent picks come first. Set `search: true` when the source matches the query itself (as the
+server message search does): it then gets the typed query, debounced, and its rows show unfiltered.
+Item ids must be unique within the source.
 
 View, panel and overlay components get `{ focused, width, height }`: the inner size in cells. Render
 inside that box. For long lists, render only the rows that fit (see `ThreadList.tsx`).
