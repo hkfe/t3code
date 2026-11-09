@@ -152,4 +152,19 @@ panel.
 Viewed marks on a pull request are saved on the host, as on web. Marks on thread changes stay in
 memory until you quit.
 
+### Terminals
+
+`ctrl+z` opens the open thread's terminals in the right panel, and closes it. The command palette's
+"Open terminal in main pane" shows them in the main pane instead (`escape` goes back). Opening it
+starts a shell when the thread has none.
+
+- While the terminal has the keys, every key goes to the shell, `ctrl+c` and `tab` too.
+  `ctrl+\\` gives the keys back to the TUI; `enter` or `i` hands them to the shell again.
+- Without the keys: `n` starts a new terminal, `x` closes the shown one, `r` renames it, `[` / `]`
+  or `1`-`9` switch tabs. `k` / `j`, `pageup` / `pagedown` (or `ctrl+u` / `ctrl+d`) and `g` / `G`
+  scroll back.
+
+The terminal follows the pane size. Names given with `r` stay in memory until you quit. A
+connection without terminal operate access sees the output read-only.
+
 Building a feature? Read [CONTRIBUTING-TUI.md](./CONTRIBUTING-TUI.md).
