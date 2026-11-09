@@ -8,6 +8,7 @@ import { messageActionsFeature } from "./message-actions/index.ts";
 import { requestsFeature } from "./requests/index.tsx";
 import { sidebarFeature } from "./sidebar/index.ts";
 import { splitPanesFeature } from "./split-panes/index.tsx";
+import { switcherFeature } from "./switcher/index.ts";
 import { threadActionsFeature } from "./thread-actions/index.ts";
 import { notificationsFeature } from "./notifications/index.ts";
 import { threadViewFeature } from "./thread-view/index.ts";
@@ -26,4 +27,5 @@ export const features: ReadonlyArray<TuiFeature> = [
   splitPanesFeature,
   notificationsFeature,
   agentOverviewFeature,
+  switcherFeature,
 ];

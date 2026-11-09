@@ -54,7 +54,11 @@ const NEEDS: Partial<Record<SidebarThreadStatus, { label: string; color: string 
   limited: { label: "Limit", color: theme.danger },
 };
 
-function statusBadge(thread: EnvironmentThreadShell, status: SidebarThreadStatus, nowMs: number) {
+export function statusBadge(
+  thread: EnvironmentThreadShell,
+  status: SidebarThreadStatus,
+  nowMs: number,
+) {
   const needs = NEEDS[status];
   if (needs) return needs;
   if (status === "working") {

@@ -54,6 +54,10 @@ Split panes show up to four threads at once. `ctrl+y` splits the focused pane si
 recent ones as cards. Arrows or `h` `j` `k` `l` move, `enter` or `1`-`9` open, `esc` closes. The web
 app uses Option+`` ` ``, which works here too when Option sends Meta.
 
+`ctrl+]` opens the thread switcher: cards for recent threads, the open one first. `tab` / `shift+tab`
+or arrows move, `enter` opens, `1`-`9` open a card by its number, `esc` closes. The web app uses
+Option+Tab, which terminals do not send reliably.
+
 In the sidebar: `j` / `k` or arrows move, `g` / `G` jump to the top or bottom, `enter` opens a
 thread or folds a section, `h` / `l` (or `←` / `→`, `space`) fold and unfold sections and project
 folders, and `/` filters threads as you type (`escape` clears it).
