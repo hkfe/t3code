@@ -9,6 +9,7 @@ import {
   paneRoutes,
   splitPane,
   swapPane,
+  threadInView,
   type Workspace,
 } from "./panes.ts";
 
@@ -48,6 +49,9 @@ describe("panes", () => {
     let workspace = openToSide(single, ref("b"));
     expect(ids(workspace)).toEqual(["a", "b"]);
     expect(workspace.route.thread?.threadId).toBe("a");
+    // Notifications skip a thread shown in any pane, not only the focused one.
+    expect(threadInView(workspace, ref("b"))).toBe(true);
+    expect(threadInView(workspace, ref("c"))).toBe(false);
 
     workspace = openToSide(openToSide(workspace, ref("c")), ref("d"));
     expect(ids(workspace)).toEqual(["a", "d", "c", "b"]);

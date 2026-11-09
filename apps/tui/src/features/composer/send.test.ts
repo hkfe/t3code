@@ -2,6 +2,7 @@ import {
   CommandId,
   EnvironmentId,
   MessageId,
+  ProjectId,
   ProviderInstanceId,
   ThreadId,
   type OrchestrationV2ThreadShell,
@@ -11,7 +12,7 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 
 import { EMPTY_EDITOR } from "./editor.ts";
-import { buildTurnInput } from "./send.ts";
+import { buildTurnInput, type NewThreadSend } from "./send.ts";
 import { EMPTY_DRAFT, type ComposerDraft } from "./state.ts";
 
 const threadId = ThreadId.make("thread-1");
@@ -33,10 +34,12 @@ function build(
     reply?: boolean;
     draft?: Partial<ComposerDraft>;
     provider?: Partial<ServerProvider>;
+    newThread?: NewThreadSend;
   } = {},
 ) {
   return buildTurnInput({
     thread: options.thread ?? idle,
+    ...(options.newThread && { newThread: options.newThread }),
     draft: { ...EMPTY_DRAFT, editor: { text, cursor: text.length }, ...options.draft },
     reply: options.reply
       ? {
@@ -97,5 +100,28 @@ describe("buildTurnInput", () => {
     expect(
       build("hi", { provider: { showInteractionModeToggle: false } })?.input.interactionMode,
     ).toBe("default");
+  });
+
+  it("creates a new thread with the first send, in a new worktree when chosen", () => {
+    const projectId = ProjectId.make("project-1");
+    const local = build("Fix the login", { newThread: { projectId, worktree: null } })?.input;
+    expect(local?.bootstrap).toEqual({
+      createThread: {
+        projectId,
+        title: "Fix the login",
+        modelSelection: idle.modelSelection,
+        runtimeMode: "full-access",
+        interactionMode: "plan",
+        branch: null,
+        worktreePath: null,
+        createdAt: "2026-11-09T00:00:00.000Z",
+      },
+    });
+    const worktree = { projectCwd: "/work/app", baseBranch: "main" };
+    expect(build("hi", { newThread: { projectId, worktree } })?.input.bootstrap).toMatchObject({
+      prepareWorktree: worktree,
+      runSetupScript: true,
+    });
+    expect(build("hi")?.input.bootstrap).toBeUndefined();
   });
 });

@@ -34,6 +34,16 @@ export function paneRoutes({ panes, route }: Workspace): ReadonlyArray<Route> {
   return panes.routes.map((pane, index) => (index === panes.active ? route : pane));
 }
 
+/** Whether a pane, focused or not, shows the thread's view. */
+export function threadInView(workspace: Workspace, thread: ScopedThreadRef): boolean {
+  return paneRoutes(workspace).some(
+    (route) =>
+      route.view === "thread" &&
+      route.thread?.environmentId === thread.environmentId &&
+      route.thread.threadId === thread.threadId,
+  );
+}
+
 function focusPane(workspace: Workspace, routes: ReadonlyArray<Route>, index: number): Workspace {
   const active = (index + routes.length) % routes.length;
   return {

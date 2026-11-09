@@ -13,7 +13,8 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { KeyRouter } from "../../app/input.tsx";
 import { serverEnvironment } from "../../state/settings.ts";
 import { environmentThreadShells } from "../../state/threadShells.ts";
-import { routeAtom } from "../../state/ui.ts";
+import { focusAtom, routeAtom } from "../../state/ui.ts";
+import { actionTarget } from "../thread-actions/actions.ts";
 import { projectsAtom, Sidebar } from "./Sidebar.tsx";
 import {
   buildSidebarRows,
@@ -214,6 +215,11 @@ describe("Sidebar", () => {
       screen.stdin.write("bet");
       await vi.waitFor(() => expect(screen.lastFrame()).toContain("/ bet"));
       expect(screen.lastFrame()).not.toContain("Recent");
+      // Thread actions act on the selected row while the sidebar has focus.
+      await vi.waitFor(() => expect(actionTarget(registry)?.threadId).toBe("beta"));
+      registry.set(focusAtom, "main");
+      expect(actionTarget(registry)).toBeNull();
+      registry.set(focusAtom, "sidebar");
       screen.stdin.write("\r");
       await vi.waitFor(() => expect(registry.get(routeAtom).thread?.threadId).toBe("beta"));
     } finally {

@@ -6,6 +6,7 @@ import {
   MessageId,
   type ProjectSearchEntriesResult,
   type ScopedThreadRef,
+  type VcsStatusResult,
 } from "@t3tools/contracts";
 import {
   detectComposerTrigger,
@@ -22,7 +23,9 @@ import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey, type KeyPress } from "../../app/keys.ts";
 import { composerReplyTargetAtom } from "../../state/composer.ts";
-import { environmentShell } from "../../state/shell.ts";
+import { newThreadDraftAtom } from "../../state/newThread.ts";
+import { vcsEnvironment } from "../../state/projects.ts";
+import { environmentShell, useThreadKnown } from "../../state/shell.ts";
 import { environmentThreadDetails } from "../../state/threads.ts";
 import { usePaneRoute } from "../../state/panes.ts";
 import { theme } from "../../theme/theme.ts";
@@ -37,7 +40,13 @@ import {
   type EditorMove,
   type EditorState,
 } from "./editor.ts";
-import { buildTurnInput, promptFromMessage, replyAuthor, threadIsRunning } from "./send.ts";
+import {
+  buildTurnInput,
+  promptFromMessage,
+  replyAuthor,
+  threadIsRunning,
+  type NewThreadSend,
+} from "./send.ts";
 import { RUNTIME_MODE_LABELS, resolveComposerSettings } from "./settings.ts";
 import {
   composerDraftAtom,
@@ -45,6 +54,7 @@ import {
   composerThreadCommands,
   projectSearchEntriesAtom,
   threadKey,
+  turnThreadAtom,
   type ComposerDraft,
 } from "./state.ts";
 
@@ -52,6 +62,10 @@ const MAX_INPUT_ROWS = 8;
 const MENTION_LIMIT = 6;
 type SearchAtom = Atom.Atom<AsyncResult.AsyncResult<ProjectSearchEntriesResult, unknown>>;
 const noEntriesAtom: SearchAtom = Atom.make(AsyncResult.initial());
+const noStatus = Atom.make(AsyncResult.initial<VcsStatusResult>());
+const noItemsAtom = Atom.make<
+  Atom.Type<ReturnType<typeof environmentThreadDetails.visibleTurnItemsAtom>>
+>([]);
 
 const MOVE_KEYS: ReadonlyArray<readonly [string, EditorMove]> = [
   ["arrowleft", "left"],
@@ -104,8 +118,24 @@ function ThreadComposer(props: {
   const snapshot = Option.getOrNull(
     useAtomValue(environmentShell.stateValueAtom(thread.environmentId)).snapshot,
   );
-  const threadShell = snapshot?.threads.find((entry) => entry.id === thread.threadId) ?? null;
-  const project = snapshot?.projects.find((entry) => entry.id === threadShell?.projectId) ?? null;
+  const known = useThreadKnown(thread);
+  const turnThread = useAtomValue(turnThreadAtom(thread));
+  const newThreadDraft = useAtomValue(newThreadDraftAtom);
+  // A new thread (`chat.new`) has no server shell until its first send creates it.
+  const newThread =
+    newThreadDraft !== null && threadKey(newThreadDraft) === threadKey(thread) && !known
+      ? newThreadDraft
+      : null;
+  const project = snapshot?.projects.find((entry) => entry.id === turnThread?.projectId) ?? null;
+  // A new worktree branches from the project's current branch, as on web and mobile.
+  const projectStatus = useAtomValue(
+    newThread?.envMode === "worktree" && project
+      ? vcsEnvironment.status({
+          environmentId: thread.environmentId,
+          input: { cwd: project.workspaceRoot },
+        })
+      : noStatus,
+  );
   const config = useAtomValue(composerServer.configValueAtom(thread.environmentId));
   const replyTarget = useAtomValue(composerReplyTargetAtom);
   const reply =
@@ -113,7 +143,9 @@ function ThreadComposer(props: {
     replyTarget.thread.threadId === thread.threadId
       ? replyTarget
       : null;
-  const items = useAtomValue(environmentThreadDetails.visibleTurnItemsAtom(thread));
+  const items = useAtomValue(
+    known ? environmentThreadDetails.visibleTurnItemsAtom(thread) : noItemsAtom,
+  );
   // The composer has the keyboard while the main pane is focused; escape hands keys to the view.
   const [active, setActive] = useState(true);
   // A new reply target (from the thread view's message actions) gives the composer the keys.
@@ -132,7 +164,7 @@ function ThreadComposer(props: {
 
   const { editor } = draft;
   const trigger = detectComposerTrigger(editor.text, editor.cursor);
-  const cwd = threadShell?.worktreePath ?? project?.workspaceRoot ?? null;
+  const cwd = turnThread?.worktreePath ?? project?.workspaceRoot ?? null;
   const mentionOpen =
     trigger?.kind === "path" && cwd !== null && dismissedMention !== trigger.rangeStart;
   const searchAtom: SearchAtom = mentionOpen
@@ -169,12 +201,30 @@ function ThreadComposer(props: {
     return true;
   };
 
+  const newThreadSend = (): NewThreadSend | string | undefined => {
+    if (newThread === null) return undefined;
+    if (newThread.envMode === "local") return { projectId: newThread.projectId, worktree: null };
+    const baseBranch = Option.getOrNull(AsyncResult.value(projectStatus))?.refName;
+    if (!project || !baseBranch)
+      return "Cannot find the project's current branch for the worktree.";
+    return {
+      projectId: newThread.projectId,
+      worktree: { projectCwd: project.workspaceRoot, baseBranch },
+    };
+  };
+
   const send = (alternate: boolean) => {
-    if (threadShell === null) return;
+    if (turnThread === null) {
+      if (newThread) setError("No model is available. Enable a provider in settings.");
+      return;
+    }
+    const creating = newThreadSend();
+    if (typeof creating === "string") return setError(creating);
     const before = current();
-    const settings = resolveComposerSettings(threadShell, before, config);
+    const settings = resolveComposerSettings(turnThread, before, config);
     const built = buildTurnInput({
-      thread: threadShell,
+      thread: turnThread,
+      ...(creating && { newThread: creating }),
       draft: before,
       reply,
       provider: settings.provider,
@@ -186,6 +236,8 @@ function ThreadComposer(props: {
     if (built === null) return;
     setDraft({ ...before, editor: EMPTY_EDITOR, attachments: [] });
     if (built.sentReply) registry.set(composerReplyTargetAtom, null);
+    // Cleared at once so a second enter cannot create the thread twice.
+    if (newThread) registry.set(newThreadDraftAtom, null);
     setHistory(null);
     setError(null);
     void runAtomCommand(registry, composerThreadCommands.startTurn, {
@@ -197,6 +249,9 @@ function ThreadComposer(props: {
       if (current().editor.text.length === 0) setDraft(before);
       if (built.sentReply && registry.get(composerReplyTargetAtom) === null) {
         registry.set(composerReplyTargetAtom, reply);
+      }
+      if (newThread && registry.get(newThreadDraftAtom) === null) {
+        registry.set(newThreadDraftAtom, newThread);
       }
       setError(`Send failed: ${String(Cause.squash(result.cause))}`);
     });
@@ -299,8 +354,8 @@ function ThreadComposer(props: {
   const lineIndex = cursorLine(lines, editor.cursor);
   const rows = Math.max(1, Math.min(MAX_INPUT_ROWS, Math.floor(props.height / 3)));
   const top = Math.max(0, lineIndex - rows + 1);
-  const settings = threadShell ? resolveComposerSettings(threadShell, draft, config) : null;
-  const running = threadShell ? threadIsRunning(threadShell) : false;
+  const settings = turnThread ? resolveComposerSettings(turnThread, draft, config) : null;
+  const running = turnThread ? threadIsRunning(turnThread) : false;
   const effortLabel = settings?.effort?.options.find(
     (option) => option.id === settings.effortValue,
   )?.label;

@@ -1,3 +1,4 @@
+import { parseScopedThreadKey } from "@t3tools/client-runtime/environment";
 import { createEnvironmentRpcQueryAtomFamily } from "@t3tools/client-runtime/state/runtime";
 import { createServerEnvironmentAtoms } from "@t3tools/client-runtime/state/server";
 import { createThreadEnvironmentAtoms } from "@t3tools/client-runtime/state/threads";
@@ -15,8 +16,10 @@ import * as Option from "effect/Option";
 import { Atom } from "effect/reactivity";
 
 import { connectionAtomRuntime } from "../../connection/runtime.ts";
+import { newThreadDraftAtom } from "../../state/newThread.ts";
 import { environmentShell } from "../../state/shell.ts";
 import { EMPTY_EDITOR, type EditorState } from "./editor.ts";
+import { newThreadSettings, type TurnThread } from "./settings.ts";
 
 const noInitialConfig = Atom.make<ServerConfig | null>(null);
 
@@ -60,3 +63,24 @@ export const composerDraftAtom = Atom.family((_threadKey: string) =>
 );
 
 export const threadKey = (ref: ScopedThreadRef) => `${ref.environmentId}:${ref.threadId}`;
+
+const turnThreadFamily = Atom.family((key: string) =>
+  Atom.make((get): TurnThread | null => {
+    const ref = parseScopedThreadKey(key);
+    if (ref === null) return null;
+    const snapshot = get(shellSnapshotAtom(ref.environmentId));
+    const shell = snapshot?.threads.find((thread) => thread.id === ref.threadId);
+    if (shell) return shell;
+    const newThread = get(newThreadDraftAtom);
+    if (newThread === null || threadKey(newThread) !== key) return null;
+    const project = snapshot?.projects.find((entry) => entry.id === newThread.projectId) ?? null;
+    return newThreadSettings(
+      newThread,
+      project,
+      get(composerServer.configValueAtom(ref.environmentId)),
+    );
+  }),
+);
+
+/** The thread a send goes to: its server shell, or the defaults of a new thread (`chat.new`). */
+export const turnThreadAtom = (ref: ScopedThreadRef) => turnThreadFamily(threadKey(ref));

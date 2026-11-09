@@ -14,6 +14,8 @@ import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { composerReplyTargetAtom } from "../../state/composer.ts";
 import { messageSelectionAtom } from "../../state/messageSelection.ts";
+import { useThreadKnown } from "../../state/shell.ts";
+import { usePaneRoute } from "../../state/panes.ts";
 import { threadEnvironment } from "../../state/threadCommands.ts";
 import { environmentThreadDetails } from "../../state/threads.ts";
 import { focusAtom, routeAtom } from "../../state/ui.ts";
@@ -121,7 +123,12 @@ function Actions({ thread }: { readonly thread: ScopedThreadRef }) {
 
 /** Under the thread: the selected message's action keys, handled in the main region. */
 export function MessageActions(_props: TuiViewProps) {
-  const thread = useAtomValue(routeAtom).thread;
+  const thread = usePaneRoute().thread;
   if (thread === null) return null;
+  return <KnownActions key={`${thread.environmentId}:${thread.threadId}`} thread={thread} />;
+}
+
+function KnownActions({ thread }: { readonly thread: ScopedThreadRef }) {
+  if (!useThreadKnown(thread)) return null;
   return <Actions key={`${thread.environmentId}:${thread.threadId}`} thread={thread} />;
 }

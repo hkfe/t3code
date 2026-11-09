@@ -7,6 +7,8 @@ import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { messageSelectionAtom } from "../../state/messageSelection.ts";
+import { newThreadDraftAtom } from "../../state/newThread.ts";
+import { useThreadKnown } from "../../state/shell.ts";
 import { environmentThreadDetails } from "../../state/threads.ts";
 import { usePaneRoute } from "../../state/panes.ts";
 import { theme } from "../../theme/theme.ts";
@@ -187,6 +189,25 @@ function Messages({
 export function ThreadView({ width, height }: TuiViewProps) {
   const thread = usePaneRoute().thread;
   if (thread === null) return <Text color={theme.textFaint}>Select a thread.</Text>;
+  return <KnownThread thread={thread} width={width} height={height} />;
+}
+
+function KnownThread({
+  thread,
+  width,
+  height,
+}: Omit<TuiViewProps, "focused"> & { readonly thread: ScopedThreadRef }) {
+  const known = useThreadKnown(thread);
+  const isNew = useAtomValue(newThreadDraftAtom)?.threadId === thread.threadId;
+  if (!known) {
+    return (
+      <Box height={height}>
+        <Text color={theme.textMuted} bold>
+          {isNew ? "New thread · the first message creates it" : "Loading thread…"}
+        </Text>
+      </Box>
+    );
+  }
   return (
     <Messages
       key={`${thread.environmentId}:${thread.threadId}`}

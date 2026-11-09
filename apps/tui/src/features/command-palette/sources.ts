@@ -37,7 +37,7 @@ function shells(get: Atom.AtomContext) {
 }
 
 /** Unarchived threads of every enabled environment, newest first. */
-function threadEntries(get: Atom.AtomContext): ReadonlyArray<ThreadEntry> {
+export function threadEntries(get: Atom.AtomContext): ReadonlyArray<ThreadEntry> {
   return shells(get)
     .flatMap(({ environmentId, snapshot }) => {
       const projects = new Map(snapshot.projects.map((project) => [project.id, project.title]));

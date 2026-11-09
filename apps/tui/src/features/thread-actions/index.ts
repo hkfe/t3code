@@ -2,7 +2,7 @@ import type { AtomRegistry } from "effect/reactivity";
 
 import type { KeyContext, TuiCommand, TuiFeature } from "../../app/feature.ts";
 import { overlayAtom } from "../../state/ui.ts";
-import { MENU_OVERLAY, openMenu, runThreadAction, takeActionTarget } from "./actions.ts";
+import { MENU_OVERLAY, openMenu, runThreadAction, actionTarget } from "./actions.ts";
 import type { ThreadAction } from "./menu.ts";
 import { NEW_THREAD_OVERLAY } from "./newThread.ts";
 import { NewThreadOverlay } from "./NewThreadOverlay.tsx";
@@ -13,14 +13,14 @@ function onTarget(
   title: string,
   run: (
     registry: AtomRegistry.AtomRegistry,
-    ref: NonNullable<ReturnType<typeof takeActionTarget>>,
+    ref: NonNullable<ReturnType<typeof actionTarget>>,
   ) => void,
 ): TuiCommand {
   return {
     id,
     title,
     run: ({ registry }) => {
-      const ref = takeActionTarget(registry);
+      const ref = actionTarget(registry);
       if (ref !== null) run(registry, ref);
     },
   };

@@ -1,13 +1,11 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import type { ScopedThreadRef } from "@t3tools/contracts";
-import * as Option from "effect/Option";
 import { Box, Text } from "ink";
 import { useContext, useState, type ReactNode } from "react";
 
 import type { TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
-import { environmentShell } from "../../state/shell.ts";
 import { overlayAtom, routeAtom } from "../../state/ui.ts";
 import { theme } from "../../theme/theme.ts";
 import {
@@ -17,7 +15,7 @@ import {
   resolveComposerSettings,
   type ModelPickerRow,
 } from "./settings.ts";
-import { composerDraftAtom, composerServer, threadKey } from "./state.ts";
+import { composerDraftAtom, composerServer, threadKey, turnThreadAtom } from "./state.ts";
 
 export const MODEL_PICKER_OVERLAY = "composer.model-picker";
 
@@ -54,10 +52,7 @@ function ThreadModelPicker(props: TuiViewProps & { readonly thread: ScopedThread
   const { thread, height } = props;
   const registry = useContext(RegistryContext);
   const config = useAtomValue(composerServer.configValueAtom(thread.environmentId));
-  const shell = useAtomValue(environmentShell.stateValueAtom(thread.environmentId));
-  const threadShell = Option.getOrNull(shell.snapshot)?.threads.find(
-    (entry) => entry.id === thread.threadId,
-  );
+  const threadShell = useAtomValue(turnThreadAtom(thread));
   const draftAtom = composerDraftAtom(threadKey(thread));
   const draft = useAtomValue(draftAtom);
   const settings = threadShell ? resolveComposerSettings(threadShell, draft, config) : null;
