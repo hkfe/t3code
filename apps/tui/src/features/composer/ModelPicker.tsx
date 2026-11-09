@@ -1,11 +1,11 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import type { ScopedThreadRef } from "@t3tools/contracts";
-import * as Option from "effect/Option";
 import { Box } from "ink";
 import { useContext, useState, type ReactNode } from "react";
 
 import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
+import { FRAME_Y, Modal, modalSize } from "../../app/Frame.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { overlayAtom, routeAtom } from "../../state/ui.ts";
@@ -23,18 +23,23 @@ export const MODEL_PICKER_OVERLAY = "composer.model-picker";
 
 const rowKey = (row: ModelPickerRow) => `${row.provider.instanceId}/${row.model.slug}`;
 
+const MAX_WIDTH = 100;
+const MAX_HEIGHT = 28;
+// Frame and filter line.
+const CHROME_ROWS = FRAME_Y + 1;
+
 function Frame(props: TuiViewProps & { readonly children: ReactNode }) {
   return (
-    <Box
-      flexDirection="column"
+    <Modal
       width={props.width}
       height={props.height}
-      borderStyle="round"
-      borderColor={theme.borderFocused}
-      paddingX={1}
+      maxWidth={MAX_WIDTH}
+      maxHeight={MAX_HEIGHT}
+      title="Model"
+      hint="type to filter · ←→ effort · enter pick · esc close"
     >
       {props.children}
-    </Box>
+    </Modal>
   );
 }
 
@@ -43,7 +48,7 @@ export function ModelPicker(props: TuiViewProps) {
   if (thread === null) {
     return (
       <Frame {...props}>
-        <Text color={theme.textFaint}>Open a thread first. esc closes.</Text>
+        <Text color={theme.textFaint}>Open a thread first.</Text>
       </Frame>
     );
   }
@@ -121,13 +126,20 @@ function ThreadModelPicker(props: TuiViewProps & { readonly thread: ScopedThread
     return false;
   });
 
-  const listRows = Math.max(1, height - 4);
+  const outer = modalSize({
+    width: props.width,
+    height,
+    maxWidth: MAX_WIDTH,
+    maxHeight: MAX_HEIGHT,
+  });
+  const listRows = Math.max(1, (outer.height ?? height) - CHROME_ROWS);
   const top = Math.max(0, Math.min(selected - Math.floor(listRows / 2), rows.length - listRows));
   return (
     <Frame {...props}>
-      <Text color={theme.textMuted} bold wrap="truncate">
-        Model <Text color={theme.text}>{filter}</Text>
-        <Text color={theme.textFaint}> type to filter · ←→ effort · enter pick · esc close</Text>
+      <Text wrap="truncate">
+        <Text color={theme.accent}>{"> "}</Text>
+        <Text color={theme.text}>{filter}</Text>
+        <Text inverse> </Text>
       </Text>
       {rows.length === 0 ? (
         <Text color={theme.textFaint}>{config ? "No models match." : "Loading models…"}</Text>

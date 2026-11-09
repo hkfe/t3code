@@ -17,6 +17,7 @@ import { PaneContext, paneRoutes, panesAtom } from "../state/panes.ts";
 import { toastAtom, type Toast } from "../state/toast.ts";
 import { theme } from "../theme/theme.ts";
 import { ErrorBoundary } from "./ErrorBoundary.tsx";
+import { Frame, FRAME_X, FRAME_Y } from "./Frame.tsx";
 import type { TuiFeature, TuiViewFooter, TuiViewProps } from "./feature.ts";
 import { KeyRouter } from "./input.tsx";
 import { leaderGroups } from "./keymap.ts";
@@ -29,10 +30,8 @@ import {
 } from "./registry.ts";
 
 const STATUS_BAR_ROWS = 1;
-// Round border (1 cell each side) plus 1 cell of horizontal padding.
-const FRAME_X = 4;
-const FRAME_Y = 2;
 const LEADER_LABEL_WIDTH = 16;
+const MIN_PANE_WIDTH = 30;
 
 function RegionFrame(props: {
   readonly region: Region;
@@ -48,7 +47,7 @@ function RegionFrame(props: {
   const hidden = useAtomValue(overlayAtom) !== null;
   const focused = useAtomValue(focusAtom) === props.region && pane?.active !== false && !hidden;
   const Component = props.component;
-  const innerHeight = Math.max(0, props.height - FRAME_Y - (props.title ? 1 : 0));
+  const innerHeight = Math.max(0, props.height - FRAME_Y);
   const innerWidth = Math.max(0, (props.width ?? MIN_REGION_WIDTH) - FRAME_X);
   const footers = props.footers ?? [];
   const footerRef = useRef<DOMElement>(null);
@@ -60,22 +59,7 @@ function RegionFrame(props: {
     if (rows !== footerRows) setFooterRows(rows);
   });
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor={focused ? theme.borderFocused : theme.border}
-      paddingX={1}
-      height={props.height}
-      {...(props.width === undefined
-        ? { flexGrow: 1, flexShrink: 1 }
-        : { width: props.width, flexShrink: 0 })}
-      overflow="hidden"
-    >
-      {props.title && (
-        <Text color={theme.textMuted} bold>
-          {props.title}
-        </Text>
-      )}
+    <Frame focused={focused} width={props.width} height={props.height} title={props.title}>
       {Component && (
         <ErrorBoundary key={props.name} name={props.name}>
           <Component
@@ -94,34 +78,43 @@ function RegionFrame(props: {
           ))}
         </Box>
       )}
-    </Box>
+    </Frame>
   );
 }
 
+/**
+ * Narrow terminals cut from the lowest priority up: key hints, then left items, then right items
+ * (connection last). A huge flexShrink makes a group give all its room before the next one shrinks.
+ */
 function StatusBar({ width }: { readonly width: number }) {
   const { statusItems } = useShellRegistry();
   const focus = useAtomValue(focusAtom);
+  // No wrapper Box: an item that renders null must not leave a gap.
+  const items = (align: "left" | "right") =>
+    statusItems
+      .filter((item) => item.align === align)
+      .map((item) => (
+        <ErrorBoundary key={item.id} name={item.id}>
+          <item.component />
+        </ErrorBoundary>
+      ));
   return (
-    <Box width={width} height={STATUS_BAR_ROWS} paddingX={1} justifyContent="space-between" gap={2}>
-      <Box gap={2} flexShrink={1}>
-        <Text color={theme.accent}>t3</Text>
-        <Text color={theme.textFaint}>{focus} · ? keys · tab focus</Text>
-        {statusItems
-          .filter((item) => item.align === "left")
-          .map((item) => (
-            <ErrorBoundary key={item.id} name={item.id}>
-              <item.component />
-            </ErrorBoundary>
-          ))}
+    <Box width={width} height={STATUS_BAR_ROWS} paddingX={1} gap={2} overflow="hidden">
+      <Box flexShrink={0}>
+        <Text color={theme.accent} bold>
+          t3
+        </Text>
       </Box>
-      <Box gap={2} flexShrink={1}>
-        {statusItems
-          .filter((item) => item.align === "right")
-          .map((item) => (
-            <ErrorBoundary key={item.id} name={item.id}>
-              <item.component />
-            </ErrorBoundary>
-          ))}
+      <Box flexGrow={1} flexShrink={1000} minWidth={0} gap={2} overflow="hidden">
+        {items("left")}
+        <Box flexShrink={1000} minWidth={0}>
+          <Text color={theme.textFaint} wrap="truncate">
+            {focus} · ? keys · tab focus
+          </Text>
+        </Box>
+      </Box>
+      <Box flexShrink={1} minWidth={0} gap={2} overflow="hidden">
+        {items("right")}
       </Box>
     </Box>
   );
@@ -163,17 +156,13 @@ function useLeaderPopup(width: number) {
     })),
   );
   const popup = (
-    <Box
-      flexDirection="column"
+    <Frame
+      focused
       width={width}
-      borderStyle="round"
-      borderColor={theme.borderFocused}
-      paddingX={1}
-      flexShrink={0}
+      height={lines.length + FRAME_Y}
+      title={`${displayKey(shell.leaderKey ?? "leader", null)} …`}
+      hint="esc cancel"
     >
-      <Text color={theme.textMuted} wrap="truncate">
-        {displayKey(shell.leaderKey ?? "leader", null)} … · esc cancel
-      </Text>
       {lines.map((line) => (
         <Box key={line.id}>
           <Box width={LEADER_LABEL_WIDTH} flexShrink={0}>
@@ -191,9 +180,9 @@ function useLeaderPopup(width: number) {
           ))}
         </Box>
       ))}
-    </Box>
+    </Frame>
   );
-  return { rows: lines.length + 1 + FRAME_Y, popup };
+  return { rows: lines.length + FRAME_Y, popup };
 }
 
 function Shell() {
@@ -204,10 +193,20 @@ function Shell() {
   const leader = useLeaderPopup(columns);
   const bodyHeight = Math.max(FRAME_Y + 1, rows - STATUS_BAR_ROWS - (toast ? 1 : 0) - leader.rows);
   const panel = layout.panel === null ? undefined : registry.panels.get(layout.panel);
-  // Side regions give way so the main pane keeps at least MIN_REGION_WIDTH columns.
-  const room = Math.max(0, columns - MIN_REGION_WIDTH - FRAME_X);
-  const sidebarWidth = layout.sidebarVisible ? Math.min(layout.sidebarWidth, room) : 0;
-  const panelWidth = panel ? Math.min(layout.panelWidth, Math.max(0, room - sidebarWidth)) : 0;
+  const panes = useAtomValue(panesAtom);
+  // Side regions give way so each side-by-side pane keeps MIN_PANE_WIDTH. The panel takes what
+  // the sidebar's minimum leaves, the sidebar the rest; a side region too narrow to read hides.
+  const minSide = MIN_REGION_WIDTH + FRAME_X;
+  let room =
+    columns - MIN_PANE_WIDTH * (panes.direction === "row" ? Math.max(1, panes.routes.length) : 1);
+  const fit = (wanted: number, reserve: number) => {
+    const width = Math.min(wanted, room - reserve);
+    if (width < minSide) return 0;
+    room -= width;
+    return width;
+  };
+  const panelWidth = panel ? fit(layout.panelWidth, layout.sidebarVisible ? minSide : 0) : 0;
+  const sidebarWidth = layout.sidebarVisible ? fit(layout.sidebarWidth, 0) : 0;
   const mainWidth = columns - sidebarWidth - panelWidth;
   const overlay = useOverlay();
 

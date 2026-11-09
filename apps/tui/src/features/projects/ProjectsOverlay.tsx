@@ -19,6 +19,7 @@ import { useContext, useState } from "react";
 
 import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
+import { Frame, FRAME_Y } from "../../app/Frame.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { environmentCatalog } from "../../state/catalog.ts";
@@ -132,13 +133,17 @@ function ListPage({
     return true;
   });
 
-  const visible = Math.max(1, height - 6);
+  // Frame, error line and spare line.
+  const visible = Math.max(1, height - FRAME_Y - 2);
   const first = Math.max(0, Math.min(cursor - visible + 1, rows.length - visible));
   return (
-    <Box width={width} height={height} flexDirection="column" paddingX={1}>
-      <Text color={theme.textMuted} bold>
-        Projects
-      </Text>
+    <Frame
+      focused
+      width={width}
+      height={height}
+      title="Projects"
+      hint="↑↓ move · enter open · h/l fold · a add · p pin · r rename · s settings · y copy path · d remove · esc close"
+    >
       {rows.length === 0 ? (
         <Text color={theme.textFaint}>No projects yet. Press a to add one.</Text>
       ) : null}
@@ -175,11 +180,7 @@ function ListPage({
           {error}
         </Text>
       ) : null}
-      <Text color={theme.textFaint} wrap="truncate">
-        ↑↓ move · enter open · h/l fold · a add · p pin · r rename · s settings · y copy path · d
-        remove · esc close
-      </Text>
-    </Box>
+    </Frame>
   );
 }
 

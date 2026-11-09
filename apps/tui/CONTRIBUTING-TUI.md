@@ -209,11 +209,59 @@ Logic that web and mobile also need belongs in `packages/client-runtime`, not he
 
 ## Look
 
-- Colors come from `theme` (`theme.accent`, `theme.textMuted`, `theme.label[color]` for thread
-  labels, `theme.syntax.*` for code and diffs). Add a token there when you need a new role.
-- No timers that repaint all the time (spinners on every frame, clocks). A changed atom repaints;
-  that is enough. A streaming message already repaints as text arrives.
-- Truncate single-line text with `wrap="truncate"`, so it does not break the layout.
+The TUI must read as one app. Check a visual change at 80x24, 120x40 and 200x60, on a dark and a
+light background (see "Run against a playground server" for headless captures).
+
+**Color.** Colors come from `theme` in `theme/theme.ts`; never write a color in a feature.
+
+- `text` is content, `textMuted` secondary content (titles, section headers), `textFaint` hints,
+  timestamps and empty states. `accent` marks focus, the open item and key hints in lists.
+  `success`, `warning`, `danger` and `info` carry meaning only. `""` means the terminal's default.
+- The theme picks one of four palettes at startup: dark or light (`T3_TUI_THEME`, else the
+  terminal's answer to an OSC 11 query, else `COLORFGBG`), rich (256 colors or more) or ANSI 16
+  (`COLORTERM`, `TERM`, `FORCE_COLOR`). `NO_COLOR` removes every color and shows backgrounds as
+  reverse video. A new token needs a value in `dark`, `light` and `ansi16`.
+
+**Frames.** Every boxed surface is a `Frame` from `app/Frame.tsx`: round border, 1 column of
+padding, the title in the top edge and key hints in the bottom edge. The focused frame has an accent
+border and title (a heavy border without color). Overlays are a full-size `Frame` (settings, switcher, overview) or a centered
+`Modal` (palette, model picker, dialogs). A Frame takes `FRAME_X` columns and `FRAME_Y` rows; size
+the content from those. Cards inside a frame (switcher, overview) use a plain round border, accent
+when selected.
+
+**Headers.** The frame title is the header: no title line inside a frame. A view that names its
+content (the thread view) shows one bold `textMuted` line on top. Counts and details follow the
+title in `textFaint`. Section headers in lists are bold `textMuted`.
+
+**Spacing.** One blank line between sections or message blocks, never two. Inline parts are
+separated by `" · "` in `textFaint`; status bar groups by 2 spaces. Key hints are lowercase,
+`key action`, joined by `" · "`: `enter open · esc close`.
+
+**Selection.** The selected row gets `backgroundColor: theme.selection` (reverse video without
+color); the open or current item uses `accent` text. A list with a cursor may add an accent `▌`.
+
+**Truncation.** No text may wrap where a line is meant:
+
+- Single-line text gets `wrap="truncate"` (it ends in `…`). Fixed columns are a `Box` with `width`
+  and `flexShrink={0}`; the flexible column gets `flexGrow={1} flexShrink={1} minWidth={0}`.
+- Measure with `string-width`, never `.length`: CJK and most emoji take 2 cells. Expand tabs to 2
+  spaces (`thread-view/lines.ts`, `diff/patch.ts`); a terminal moves a tab to the next tab stop.
+- The status bar gives way from the lowest priority: key hints, then left items, then right items.
+  Put the state before the name (`● Connected · laptop`), so a cut keeps the state.
+
+**States.** Empty, loading and error states are one line in the space the content would take.
+Empty and loading are `textFaint` ("No matches.", "Loading pull request…"); errors are `danger`
+and name the retry key ("Could not load the checks. r retries."). Sentence case, ending in a period
+or an ellipsis.
+
+**Glyphs.** Use the shared set: `●` status or unread, `○` pending, `✓` `✗` results, `▸` `▾`
+folds, `▌` cursor row, `›` prompt, `↳` reply, `·` separator, `…` ellipsis, `─` `│` rules. No emoji
+in chrome: terminals disagree on their width. Without a UTF-8 locale (or with `T3_TUI_ASCII=1`)
+`theme/output.ts` folds output to ASCII of the same width; add a new glyph to its map, or it shows
+as `?`.
+
+**Motion.** No timers that repaint all the time (spinners on every frame, clocks). A changed atom
+repaints; that is enough. A streaming message already repaints as text arrives.
 
 ## Test
 
@@ -261,4 +309,6 @@ To capture the screen without a window, run it under `script` and feed keys on s
   script -q $P/screen.txt env COLUMNS=120 LINES=32 node apps/tui/dist/bin.mjs
 ```
 
-`$P/screen.txt` holds the raw ANSI output (`\x11` is ctrl+q, which quits).
+`$P/screen.txt` holds the raw ANSI output (`\x11` is ctrl+q, which quits). To check the theme
+fallbacks, set `COLORTERM=truecolor`, `TERM=xterm-256color`, `TERM=xterm` (16 colors), `NO_COLOR=1`,
+`T3_TUI_THEME=light` or `LANG=C` (ASCII) in the `env` part.

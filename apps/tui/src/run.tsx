@@ -16,6 +16,8 @@ import { appAtomRegistry } from "./connection/runtime.ts";
 import { features } from "./features/index.ts";
 import { connectPairingUrl } from "./state/catalog.ts";
 import { serverHintAtom } from "./state/serverHint.ts";
+import { themedStdout } from "./theme/output.ts";
+import { colorMode, unicode } from "./theme/theme.ts";
 
 let instance: Instance | undefined;
 
@@ -84,6 +86,7 @@ export async function runTui(options: RunOptions) {
       exitOnCtrlC: false,
       // Rewrites only the lines that changed instead of the whole screen each frame.
       incrementalRendering: true,
+      stdout: themedStdout(process.stdout, { unicode, color: colorMode !== "none" }),
     },
   );
   await instance.waitUntilExit();

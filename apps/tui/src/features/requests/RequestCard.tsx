@@ -150,7 +150,11 @@ function Idle({ onDefer }: { readonly onDefer: () => void }) {
     onDefer();
     return true;
   });
-  return <Text color={theme.textFaint}>Nothing here needs you. ctrl+r jumps to the next one.</Text>;
+  return (
+    <Text color={theme.textFaint} wrap="truncate">
+      Nothing here needs you. ctrl+r jumps to the next one.
+    </Text>
+  );
 }
 
 // By request id, in the registry, so a remounted card cannot answer one request twice.

@@ -116,7 +116,7 @@ function NeedsYouStatus() {
   const count = useAtomValue(needsYouAtom, (waiting) => waiting.length);
   if (count === 0) return null;
   return (
-    <Text color={theme.warning} bold>
+    <Text color={theme.warning} bold wrap="truncate">
       {count} need you · ctrl+r
     </Text>
   );

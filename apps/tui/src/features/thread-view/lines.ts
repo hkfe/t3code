@@ -27,6 +27,9 @@ export function lineWidth(line: Line): number {
   return width;
 }
 
+/** string-width counts a tab as 0 cells, but the terminal jumps to a tab stop: use 2 spaces, as diffs do. */
+const cells = (text: string) => text.replaceAll("\t", "  ");
+
 /** Cuts `text` into pieces of at most `width` cells. */
 function chop(text: string, width: number): string[] {
   const pieces: string[] = [];
@@ -72,7 +75,7 @@ export function wrap(
   };
 
   for (const part of spans) {
-    for (const [index, segment] of part.text.split("\n").entries()) {
+    for (const [index, segment] of cells(part.text).split("\n").entries()) {
       if (index > 0) newLine();
       for (const word of segment.split(/(\s+)/)) {
         if (word === "") continue;
@@ -113,7 +116,7 @@ export function wrapHard(spans: ReadonlyArray<Span>, width: number, indent: Line
   const lines: Span[][] = [[...indent]];
   let used = 0;
   for (const part of spans) {
-    for (const char of part.text) {
+    for (const char of cells(part.text)) {
       const w = stringWidth(char);
       if (used + w > room) {
         lines.push([...indent]);

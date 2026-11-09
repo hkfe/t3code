@@ -7,6 +7,7 @@ import { useContext, useState, useSyncExternalStore } from "react";
 
 import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
+import { Frame, FRAME_X, FRAME_Y } from "../../app/Frame.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { serverEnvironment } from "../../state/settings.ts";
@@ -22,8 +23,7 @@ export const SWITCHER_OVERLAY = "switcher";
 const CARD_MIN_WIDTH = 38;
 // Border plus seven content rows: project, title x2, branch, preview x2, status.
 const CARD_HEIGHT = 9;
-// Title and hint lines.
-const CHROME_ROWS = 2;
+const CHROME_ROWS = FRAME_Y;
 
 const ref = (thread: EnvironmentThreadShell) => ({
   environmentId: thread.environmentId,
@@ -114,8 +114,9 @@ export function Switcher({ width, height }: TuiViewProps) {
   const [cursor, setCursor] = useState(hasCurrent ? 1 : 0);
   const selected = Math.min(cursor, Math.max(0, threads.length - 1));
 
-  const columns = Math.max(1, Math.floor(width / CARD_MIN_WIDTH));
-  const cardWidth = Math.floor(width / columns);
+  const inner = width - FRAME_X;
+  const columns = Math.max(1, Math.floor(inner / CARD_MIN_WIDTH));
+  const cardWidth = Math.floor(inner / columns);
   const visibleRows = Math.max(1, Math.floor((height - CHROME_ROWS) / CARD_HEIGHT));
   const selectedRow = Math.floor(selected / columns);
   const firstRow = Math.max(0, selectedRow - visibleRows + 1);
@@ -157,10 +158,17 @@ export function Switcher({ width, height }: TuiViewProps) {
     visible.slice(row * columns, (row + 1) * columns),
   );
   return (
-    <Box flexDirection="column" width={width} height={height}>
-      <Text color={theme.textMuted} bold wrap="truncate">
-        Switch thread <Text color={theme.textFaint}>{threads.length}</Text>
-      </Text>
+    <Frame
+      focused
+      width={width}
+      height={height}
+      title={
+        <>
+          Switch thread <Text color={theme.textFaint}>{threads.length}</Text>
+        </>
+      }
+      hint="tab/shift+tab or arrows move · enter open · 1-9 jump · esc cancel"
+    >
       {threads.length === 0 ? <Text color={theme.textFaint}>No recent threads.</Text> : null}
       <Box flexDirection="column" flexGrow={1}>
         {rows.map((cards, row) => (
@@ -184,9 +192,6 @@ export function Switcher({ width, height }: TuiViewProps) {
           </Box>
         ))}
       </Box>
-      <Text color={theme.textFaint} wrap="truncate">
-        tab/shift+tab or arrows move · enter open · 1-9 jump · esc cancel
-      </Text>
-    </Box>
+    </Frame>
   );
 }

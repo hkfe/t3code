@@ -5,6 +5,7 @@ import { useState, type ComponentType, type ReactNode } from "react";
 
 import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
+import { Frame, FRAME_X, FRAME_Y } from "../../app/Frame.tsx";
 import { useRegionInput } from "../../app/input.tsx";
 import { isKey } from "../../app/keys.ts";
 import { environmentCatalog } from "../../state/catalog.ts";
@@ -34,8 +35,8 @@ const SECTIONS: ReadonlyArray<{
   { title: "Keys", component: KeysSection },
 ];
 
-// Border, tabs, blank line and the hint line.
-const CHROME_ROWS = 5;
+// Frame, tabs and blank line.
+const CHROME_ROWS = FRAME_Y + 2;
 
 export function SettingsOverlay({ width, height }: TuiViewProps) {
   const catalog = useAtomValue(environmentCatalog.catalogValueAtom);
@@ -65,18 +66,14 @@ export function SettingsOverlay({ width, height }: TuiViewProps) {
 
   const Section = SECTIONS[section]!.component;
   return (
-    <Box
-      flexDirection="column"
+    <Frame
+      focused
       width={width}
       height={height}
-      borderStyle="round"
-      borderColor={theme.borderFocused}
-      paddingX={1}
+      title="Settings"
+      hint="tab/shift+tab section · esc close"
     >
       <Box gap={2}>
-        <Text color={theme.text} bold>
-          Settings
-        </Text>
         {SECTIONS.map((entry, index) => (
           <Text
             key={entry.title}
@@ -98,17 +95,14 @@ export function SettingsOverlay({ width, height }: TuiViewProps) {
           <Section
             key={`${section}:${current.environmentId}`}
             environmentId={current.environmentId}
-            width={width - 4}
+            width={width - FRAME_X}
             height={Math.max(1, height - CHROME_ROWS)}
           />
         ) : (
           <Text color={theme.textFaint}>Pair with a server to edit its settings.</Text>
         )}
       </Box>
-      <Text color={theme.textFaint} wrap="truncate">
-        tab/shift+tab section · esc close
-      </Text>
-    </Box>
+    </Frame>
   );
 }
 

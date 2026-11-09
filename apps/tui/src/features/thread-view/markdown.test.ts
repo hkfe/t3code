@@ -40,6 +40,12 @@ describe("renderMarkdown", () => {
     expect(text(render("abcdefghijkl", 8))).toEqual(["abcdefgh", "ijkl"]);
   });
 
+  it("counts tabs and wide characters in cells, so no line overflows", () => {
+    const lines = render("```\n\tif (x) {\n\t\treturn 1;\n```\n\n漢字かな交じり文の段落です", 10);
+    expect(text(lines).some((line) => line.includes("\t"))).toBe(false);
+    expect(lines.every((line) => lineWidth(line) <= 10)).toBe(true);
+  });
+
   it("draws a table that fits as a grid and degrades a wide one to header: value rows", () => {
     const table = "| a | bb |\n|---|---:|\n| 1 | 2 |";
     expect(text(render(table, 40))).toEqual(["a │ bb", "──┼───", "1 │  2"]);

@@ -8,6 +8,7 @@ import { Text } from "../../app/text.tsx";
 import type { PaletteItem, TuiViewProps } from "../../app/feature.ts";
 import { useRegionInput } from "../../app/input.tsx";
 import { displayKey, isKey } from "../../app/keys.ts";
+import { FRAME_Y, Modal, modalSize } from "../../app/Frame.tsx";
 import { useShellRegistry, type ShellRegistry } from "../../app/registry.ts";
 import { overlayAtom } from "../../state/ui.ts";
 import { theme } from "../../theme/theme.ts";
@@ -15,8 +16,10 @@ import { addRecentPick, rankPalette, recentPicksAtom, type PaletteGroup } from "
 
 const SEARCH_DEBOUNCE_MS = 120;
 const LABEL_WIDTH = 9;
-// Border, query line, and footer.
-const CHROME_ROWS = 4;
+const MAX_WIDTH = 100;
+const MAX_HEIGHT = 28;
+// Frame and query line.
+const CHROME_ROWS = FRAME_Y + 1;
 // Rows that only manage the palette itself.
 const HIDDEN_COMMANDS = new Set(["commandPalette.toggle", "core.closeOverlay", "core.leader"]);
 
@@ -120,20 +123,19 @@ export function CommandPalette({ width, height }: TuiViewProps) {
     return true;
   });
 
-  const listHeight = Math.max(1, height - CHROME_ROWS);
+  const size = modalSize({ width, height, maxWidth: MAX_WIDTH, maxHeight: MAX_HEIGHT });
+  const listHeight = Math.max(1, (size.height ?? height) - CHROME_ROWS);
   const first = Math.max(
     0,
     Math.min(selected - Math.floor(listHeight / 2), rows.length - listHeight),
   );
   return (
-    <Box
-      flexDirection="column"
+    <Modal
       width={width}
       height={height}
-      borderStyle="round"
-      borderColor={theme.borderFocused}
-      paddingX={1}
-      overflow="hidden"
+      maxWidth={MAX_WIDTH}
+      maxHeight={MAX_HEIGHT}
+      hint="↑↓ ctrl+n/p move · enter run · ctrl+u clear · esc close"
     >
       <Text wrap="truncate">
         <Text color={theme.accent}>{"> "}</Text>
@@ -174,9 +176,6 @@ export function CommandPalette({ width, height }: TuiViewProps) {
           );
         })}
       </Box>
-      <Text color={theme.textFaint} wrap="truncate">
-        ↑↓ ctrl+n/p move · enter run · ctrl+u clear · esc close
-      </Text>
-    </Box>
+    </Modal>
   );
 }
