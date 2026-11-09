@@ -2826,8 +2826,8 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       icon: "icon.icns",
       category: "public.app-category.developer-tools",
       extendInfo: {
-        // The app menu shows CFBundleName; productName still names the .app and installer.
-        CFBundleName: appMenuName,
+        // Not CFBundleName: Electron finds "<CFBundleName> Helper.app" and aborts at launch
+        // when it does not match productName, which names the helpers.
         CFBundleDisplayName: appMenuName,
         // macOS 26 offers Messages/Mail codes in every text field unless opted out.
         NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac: true,
