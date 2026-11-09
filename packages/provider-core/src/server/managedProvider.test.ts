@@ -99,6 +99,7 @@ const refreshedSnapshotSecond: ServerProvider = {
 
 function layerProviderHost(input: {
   readonly runBackgroundWork: boolean;
+  readonly awaitProviderStatusDemand?: Effect.Effect<void>;
   readonly settings?: Pick<ProviderHost.ProviderHost["Service"], "settings">["settings"];
 }) {
   return Layer.succeed(
@@ -118,6 +119,7 @@ function layerProviderHost(input: {
         subscribe: Effect.succeed(Stream.empty),
       },
       shouldRunBackgroundWork: () => Effect.succeed(input.runBackgroundWork),
+      awaitProviderStatusDemand: input.awaitProviderStatusDemand ?? Effect.void,
       resolveAttachmentPath: () => null,
       credentials: () => Effect.die("unused"),
     }),
@@ -290,6 +292,51 @@ describe("makeManagedServerProvider", () => {
           assert.strictEqual(yield* Ref.get(checkCalls), 1);
         }),
       ).pipe(Effect.provide(layerAlwaysRunTest)),
+  );
+
+  it.effect("defers the first probe until provider-status demand or the fallback delay", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const make = Effect.fn(function* (demand: Effect.Effect<void>) {
+          const checkCalls = yield* Ref.make(0);
+          const checked = yield* Deferred.make<void>();
+          const provider = yield* makeManagedServerProvider<TestSettings>({
+            resolveMaintenance: () => Effect.succeed(maintenanceCapabilities),
+            getSettings: Effect.succeed({ enabled: true }),
+            streamSettings: Stream.empty,
+            haveSettingsChanged: () => false,
+            initialSnapshot: () => Effect.succeed(initialSnapshot),
+            checkProvider: Ref.update(checkCalls, (count) => count + 1).pipe(
+              Effect.andThen(Deferred.succeed(checked, undefined)),
+              Effect.as(refreshedSnapshot),
+            ),
+            refreshOnInterval: false,
+          }).pipe(
+            Effect.provide(
+              layerProviderHost({ runBackgroundWork: true, awaitProviderStatusDemand: demand }),
+            ),
+          );
+          return { checkCalls, checked, provider };
+        });
+
+        const demand = yield* Deferred.make<void>();
+        const onDemand = yield* make(Deferred.await(demand));
+        const headless = yield* make(Effect.never);
+        yield* TestClock.adjust("59 seconds");
+        assert.strictEqual(yield* Ref.get(onDemand.checkCalls), 0);
+        assert.strictEqual(yield* Ref.get(headless.checkCalls), 0);
+        assert.deepStrictEqual(yield* onDemand.provider.getSnapshot, initialSnapshot);
+
+        yield* Deferred.succeed(demand, undefined);
+        yield* Deferred.await(onDemand.checked);
+        assert.deepStrictEqual(yield* onDemand.provider.getSnapshot, refreshedSnapshot);
+
+        yield* TestClock.adjust("1 second");
+        yield* Deferred.await(headless.checked);
+        assert.strictEqual(yield* Ref.get(onDemand.checkCalls), 1);
+        assert.strictEqual(yield* Ref.get(headless.checkCalls), 1);
+      }),
+    ).pipe(Effect.provide(TestClock.layer())),
   );
 
   it.effect("skips periodic provider refreshes without foreground provider-status demand", () =>

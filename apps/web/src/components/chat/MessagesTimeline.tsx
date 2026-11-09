@@ -1311,7 +1311,10 @@ const ConversationTimeline = memo(function ConversationTimeline({
               keyExtractor={keyExtractor}
               getItemType={getItemType}
               renderItem={renderItem}
-              estimatedItemSize={90}
+              // Legend sizes its first container pool from this; a low value mounts unseen rows on open.
+              estimatedItemSize={160}
+              // Rows hold local disclosure and audio state, so containers must remount.
+              recycleItems={false}
               initialScrollAtEnd={
                 !findActive && citationRequest === null && rememberedPosition?.atEnd !== false
               }

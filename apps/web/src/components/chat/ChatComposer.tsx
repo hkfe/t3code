@@ -1,3 +1,6 @@
+import { scopedThreadKey } from "@t3tools/client-runtime/environment";
+import { useComposerReplyStore } from "~/composerReplyStore";
+import { ComposerReplyChip } from "./ComposerReplyChip";
 import { useComposerTypingGuard } from "./useComposerTypingGuard";
 import { insertAttachmentReferencesForDraft } from "./composerAttachmentReferences";
 import { DESKTOP_PASTE_AS_TEXT_EVENT } from "../../lib/desktopPasteAsText";
@@ -606,6 +609,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   );
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const composerDraftTargetKey = composerTargetKey(composerDraftTarget);
+  const replyThreadKey = scopedThreadKey(routeThreadRef);
+  const reply = useComposerReplyStore((store) => store.byThreadKey[replyThreadKey] ?? null);
+  const clearReply = () => useComposerReplyStore.getState().setReply(replyThreadKey, null);
   const {
     heldRequestIds,
     onDraftChange: onTypingGuardDraftChange,
@@ -1048,6 +1054,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     pendingUserInputs.length === 0;
 
   const composerEditorRef = useRef<ComposerPromptEditorHandle>(null);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- the reply button lives in the timeline; focus is DOM work.
+  useEffect(() => {
+    if (reply !== null) composerEditorRef.current?.focusAtEnd();
+  }, [reply]);
   const pasteAsTextShortcutUntilRef = useRef(0);
   const composerFormRef = useRef<HTMLFormElement>(null);
   const composerSurfaceRef = useRef<HTMLDivElement>(null);
@@ -2198,7 +2208,13 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   };
   const expandMobileComposerStable = useStableCallback(expandMobileComposer);
 
-  const onComposerCommandKey = (key: string, event: KeyboardEvent, isTaskItem?: boolean) =>
+  const onComposerCommandKey = (key: string, event: KeyboardEvent, isTaskItem?: boolean) => {
+    if (handleComposerCommandKey(key, event, isTaskItem)) return true;
+    if (key !== "Escape" || reply === null || event.isComposing) return false;
+    clearReply();
+    return true;
+  };
+  const handleComposerCommandKey = (key: string, event: KeyboardEvent, isTaskItem?: boolean) =>
     composerCommandKeyHandler({
       keybindings,
       sendShortcut: settings.sendShortcut,
@@ -3365,6 +3381,16 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                     onRemove={onRemoveEditingQueuedAttachment}
                   />
                 )}
+
+              {reply !== null && !isComposerCollapsedMobile && !isEditingQueuedMessage ? (
+                <ComposerReplyChip
+                  reply={reply}
+                  onRemove={() => {
+                    clearReply();
+                    composerEditorRef.current?.focusAtEnd();
+                  }}
+                />
+              ) : null}
 
               {composerAttachmentMediaRow}
 

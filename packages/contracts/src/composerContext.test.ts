@@ -118,6 +118,14 @@ const knownRecords: Record<(typeof COMPOSER_CONTEXT_KINDS)[number], Record<strin
     label: "vps",
     environmentId: "environment-vps",
   },
+  reply: {
+    ...base,
+    kind: "reply",
+    label: "Reply to T3 Code",
+    messageId: "message-1",
+    role: "assistant",
+    text: "Use a lock.",
+  },
 };
 
 describe("ComposerContextRecord", () => {

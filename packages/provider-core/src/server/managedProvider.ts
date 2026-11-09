@@ -19,6 +19,8 @@ import * as ProviderHost from "./ProviderHost.ts";
 import { applyUsageLimitsUpdate, resolveUsageLimitsAfterProbe } from "./usageLimits.ts";
 import type { ManagedServerProvider } from "./snapshot.ts";
 
+const INITIAL_PROBE_FALLBACK_DELAY = "60 seconds";
+
 interface ProviderSnapshotState {
   readonly snapshot: ServerProvider;
   readonly enrichmentGeneration: number;
@@ -362,10 +364,13 @@ export const makeManagedServerProvider = Effect.fn("makeManagedServerProvider")(
     ),
   ).pipe(Effect.forkScoped);
 
-  yield* applySnapshot(initialSettings, { forceRefresh: true }).pipe(
-    Effect.ignoreCause({ log: true }),
-    Effect.forkScoped,
-  );
+  // Probes spawn provider CLIs. Until a client asks, the initial snapshot and the
+  // persisted status cache serve model lists; headless servers probe after a delay.
+  // @effect-diagnostics-next-line raceFirstWithSleepToTimeout:off - waits for demand, not a timeout
+  yield* Effect.raceFirst(
+    host.awaitProviderStatusDemand,
+    Effect.sleep(INITIAL_PROBE_FALLBACK_DELAY),
+  ).pipe(Effect.andThen(refreshSnapshot()), Effect.ignoreCause({ log: true }), Effect.forkScoped);
 
   return {
     resolveMaintenance: input.resolveMaintenance,

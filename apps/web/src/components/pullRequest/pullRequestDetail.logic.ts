@@ -334,7 +334,9 @@ export function describePullRequestChecks(checks: ReadonlyArray<PullRequestCheck
     parts.push(parts.length > 0 ? `${failed} failed` : `${failed} of ${checks.length} failing`);
   }
   if (parts.length === 0) {
-    return passed === checks.length ? "All checks passed" : `${passed} of ${checks.length} passing`;
+    return passed === checks.length
+      ? "All checks passed"
+      : `${passed} passed · ${checks.length - passed} skipped`;
   }
   return parts.join(" · ");
 }

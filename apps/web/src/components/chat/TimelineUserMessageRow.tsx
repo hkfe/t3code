@@ -86,6 +86,7 @@ import {
   TimelineRowTimestamp,
 } from "./TimelineRowParts";
 import { UserMessageContextReferenceChip } from "./UserMessageContextChips";
+import { MessageReplyButton } from "./MessageReplyButton";
 import {
   resolvePreviewAnnotationImage,
   userMessageFileLabel,
@@ -346,6 +347,7 @@ function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "mess
               {typeof revertTurnCount === "number" && (
                 <RevertUserMessageButton turnCount={revertTurnCount} messageId={row.message.id} />
               )}
+              <MessageReplyButton message={{ id: row.message.id, role: "user", text }} />
               <MessageCopyButton text={text} variant="ghost" />
               {promptLink !== null && (
                 <MessageCopyButton
@@ -798,6 +800,9 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
         {typeof revertTurnCount === "number" && (
           <RevertUserMessageButton turnCount={revertTurnCount} messageId={row.message.id} />
         )}
+        <MessageReplyButton
+          message={{ id: row.message.id, role: "user", text: resolvedContext.text }}
+        />
         {copyText && (
           <MessageCopyButton
             text={contextClipboardFragment ? copyText : plainText}

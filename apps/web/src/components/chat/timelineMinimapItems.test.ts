@@ -2,7 +2,11 @@ import { describe, expect, it } from "vite-plus/test";
 import { MessageId } from "@t3tools/contracts";
 import { ATTACHMENT_ONLY_BOOTSTRAP_PROMPT } from "@t3tools/shared/composerContextReferences";
 
-import { deriveTimelineMinimapItems, resolveTimelineMinimapPreview } from "./timelineMinimapItems";
+import {
+  deriveTimelineMinimapItems,
+  resolveTimelineMinimapPreview,
+  resolveTimelineMinimapTickIndices,
+} from "./timelineMinimapItems";
 
 describe("deriveTimelineMinimapItems", () => {
   it.each(["", "Ultrathink:\n"])(
@@ -44,5 +48,22 @@ describe("resolveTimelineMinimapPreview", () => {
         "Started <t3-thread://v2/env-1/thread-1> and [Fix CI](t3-thread://v2/env-1/t2).",
     });
     expect(preview?.assistantText).toBe("Started a thread and Fix CI.");
+  });
+});
+
+describe("resolveTimelineMinimapTickIndices", () => {
+  it("keeps every turn when the rail fits them", () => {
+    expect(resolveTimelineMinimapTickIndices(4, 10)).toEqual([0, 1, 2, 3]);
+    expect(resolveTimelineMinimapTickIndices(1, 10)).toEqual([0]);
+    expect(resolveTimelineMinimapTickIndices(0, 10)).toEqual([]);
+  });
+
+  it("thins a long thread to evenly spaced, distinct ticks that keep the first and last turn", () => {
+    expect(resolveTimelineMinimapTickIndices(10, 4)).toEqual([0, 3, 6, 9]);
+    const ticks = resolveTimelineMinimapTickIndices(161, 52);
+    expect(ticks).toHaveLength(52);
+    expect(ticks[0]).toBe(0);
+    expect(ticks.at(-1)).toBe(160);
+    expect(new Set(ticks).size).toBe(52);
   });
 });

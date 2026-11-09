@@ -87,8 +87,8 @@ export const ModelPickerSidebar = memo(function ModelPickerSidebar(props: {
           {selectedIndicatorTop !== null ? (
             <div
               data-model-picker-selected-indicator="true"
-              className="pointer-events-none absolute right-1 z-10 h-5 w-0.75 rounded-full bg-primary transition-[top] duration-200 ease-out"
-              style={{ top: selectedIndicatorTop }}
+              className="pointer-events-none absolute top-0 right-1 z-10 h-5 w-0.75 rounded-full bg-primary transition-[translate] duration-200 ease-out"
+              style={{ translate: `0 ${selectedIndicatorTop}px` }}
             />
           ) : null}
           {showFavorites ? (

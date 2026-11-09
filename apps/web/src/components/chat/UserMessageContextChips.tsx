@@ -1,26 +1,18 @@
 import { documentChipKindForFileName } from "~/pierre-icons";
 import { isSvgAttachment } from "@t3tools/shared/image";
-import { useRenderedAppearance } from "../../hooks/useTheme";
 import { PullRequestGlyph } from "../pullRequest/pullRequestIcons";
 import { ReadOnlySourcePreview } from "../files/AttachmentFilePreview";
 import { useRightPanelStore } from "~/rightPanelStore";
 import { COMPOSER_CONTEXT_KINDS } from "@t3tools/contracts";
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
-import { use, type ReactNode } from "react";
-import { FileDiff } from "@pierre/diffs/react";
-import { DiffWorkerPoolProvider } from "../DiffWorkerPoolProvider";
+import { lazy, Suspense, use, type ReactNode } from "react";
 import {
   type ChatFileAttachment,
   type ChatImageAttachment,
   isImageAttachment,
   isVideoAttachment,
 } from "../../types";
-import {
-  getRenderablePatch,
-  resolveDiffThemeName,
-  resolveFileDiffPath,
-} from "../../lib/diffRendering";
-import { PREFERRED_HIGHLIGHTER } from "../../lib/syntaxHighlighting";
+import { getRenderablePatch } from "../../lib/diffRendering";
 import ChatMarkdown from "../ChatMarkdown";
 import { EnvironmentContextChip } from "../EnvironmentContextChip";
 import { ThreadContextChip } from "../ThreadContextChip";
@@ -42,8 +34,10 @@ import {
   isPullRequestSummaryContext,
   pullRequestContextDisplayState,
   pullRequestContextKindLabel,
+  replyContextAuthor,
   reviewCommentContextLabel,
 } from "~/lib/composerContextRecords";
+import { scrollTimelineToMessage } from "./MessageReplyButton";
 import { formatComposerContextReference } from "@t3tools/shared/composerContextReferences";
 import { ContextChip, ContextChipLabel, type ContextChipKind } from "../ContextChip";
 import { createContextPresentationRegistry } from "../contextPresentationRegistry";
@@ -61,6 +55,9 @@ import {
 } from "../../reviewCommentContext";
 import { TimelineRowCtx } from "./timelineRowContext";
 import { userMessageFileLabel } from "./TimelineUserMessageRow.logic";
+
+// Review comment diffs are rare; the diff renderer stays out of the thread chunk until one shows.
+const ReviewCommentDiff = lazy(() => import("./ReviewCommentDiff"));
 
 function UserMessageMentionChip(props: {
   record: Extract<KnownComposerContextRecord, { kind: "mention" }>;
@@ -115,6 +112,28 @@ function UserMessageSkillChip(props: {
       copyMarkdown={props.copyMarkdown}
       onViewInstructions={skillInstructionsOpener(threadRef, skill)}
     />
+  );
+}
+
+function UserMessageReplyQuote(props: {
+  record: Extract<KnownComposerContextRecord, { kind: "reply" }>;
+  copyMarkdown: string;
+}) {
+  const { listRef } = use(TimelineRowCtx);
+  return (
+    <button
+      type="button"
+      data-markdown-copy={props.copyMarkdown}
+      className="mb-1 flex w-full min-w-0 cursor-pointer flex-col items-start gap-0.5 rounded-md border-s-2 border-border bg-muted/40 px-2 py-1 text-start text-xs hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+      onClick={() => scrollTimelineToMessage(listRef.current, props.record.messageId)}
+    >
+      <span className="font-medium text-muted-foreground">
+        Replying to {replyContextAuthor(props.record.role)}
+      </span>
+      <span className="line-clamp-2 whitespace-pre-wrap wrap-break-word text-muted-foreground">
+        {props.record.text}
+      </span>
+    </button>
   );
 }
 
@@ -319,6 +338,16 @@ const userMessageContextPresentationRegistry = createContextPresentationRegistry
       render: (record, context) =>
         record.kind === "thread" ? (
           <ThreadContextChip record={record} copyMarkdown={context.copyMarkdown} />
+        ) : (
+          <UnavailableUserMessageContextChip {...context} />
+        ),
+    },
+    {
+      kind: "reply",
+      canRender: (record) => record.kind === "reply",
+      render: (record, context) =>
+        record.kind === "reply" ? (
+          <UserMessageReplyQuote record={record} copyMarkdown={context.copyMarkdown} />
         ) : (
           <UnavailableUserMessageContextChip {...context} />
         ),
@@ -537,7 +566,6 @@ export function UserMessageContextReferenceChip(props: {
 }
 
 function UserMessageReviewCommentCard({ comment }: { comment: ReviewCommentContext }) {
-  const renderedAppearance = useRenderedAppearance();
   const ctx = use(TimelineRowCtx);
   const fenceLanguage = comment.fenceLanguage ?? "diff";
   const renderablePatch = getRenderablePatch(
@@ -577,20 +605,9 @@ function UserMessageReviewCommentCard({ comment }: { comment: ReviewCommentConte
         />
       )}
       {renderablePatch?.kind === "files" && (
-        <DiffWorkerPoolProvider>
-          {renderablePatch.files.map((fileDiff) => (
-            <FileDiff
-              key={resolveFileDiffPath(fileDiff)}
-              fileDiff={fileDiff}
-              options={{
-                collapsed: false,
-                diffStyle: "unified",
-                theme: resolveDiffThemeName(renderedAppearance),
-                preferredHighlighter: PREFERRED_HIGHLIGHTER,
-              }}
-            />
-          ))}
-        </DiffWorkerPoolProvider>
+        <Suspense fallback={null}>
+          <ReviewCommentDiff files={renderablePatch.files} />
+        </Suspense>
       )}
       {renderablePatch?.kind === "raw" && (
         <pre className="overflow-x-auto rounded-md bg-muted/40 p-2 text-xs">

@@ -204,10 +204,12 @@ describe("BackgroundPolicy", () => {
       yield* policy.reportClientActivity(
         AuthSessionId.make("session-1"),
         RpcClientId.make(1),
-        makeReport(),
+        makeReport({ scopes: [{ type: "vcs-status", cwd: "/repo" }, { type: "provider-status" }] }),
       );
 
       assert.equal(yield* policy.shouldRunScopeWork({ type: "vcs-status", cwd: "/repo" }), false);
+      // The first provider probe follows demand even while periodic work is paused.
+      yield* policy.awaitProviderStatusDemand;
     }).pipe(
       Effect.provide(
         layerFor(

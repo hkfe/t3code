@@ -16,13 +16,12 @@ import * as Result from "effect/Result";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { createModelCapabilities } from "@t3tools/shared/model";
 import { resolveSpawnCommand } from "@t3tools/shared/shell";
-import {
-  query as claudeQuery,
-  type Options as ClaudeQueryOptions,
-  type SlashCommand as ClaudeSlashCommand,
-  type SDKControlGetUsageResponse,
-  type SDKUserMessage,
-  type SettingSource,
+import type {
+  Options as ClaudeQueryOptions,
+  SlashCommand as ClaudeSlashCommand,
+  SDKControlGetUsageResponse,
+  SDKUserMessage,
+  SettingSource,
 } from "@anthropic-ai/claude-agent-sdk";
 
 import {
@@ -334,6 +333,8 @@ const probeClaudeCapabilities = (
     );
     const managedMcpConfig = yield* hasClaudeManagedMcpConfig();
     return yield* Effect.tryPromise(async () => {
+      // Lazy: the SDK bundle is large and only this probe needs it at runtime.
+      const { query: claudeQuery } = await import("@anthropic-ai/claude-agent-sdk");
       const q = claudeQuery({
         // oxlint-disable-next-line require-yield -- never yields, so no prompt reaches the API
         prompt: (async function* (): AsyncGenerator<SDKUserMessage> {

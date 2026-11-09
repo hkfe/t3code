@@ -215,7 +215,7 @@ import {
   type SidebarSection,
   resolveSidebarRowThreadId,
 } from "./Sidebar.logic";
-import { openThreadToTheSide } from "./WorkspaceSplits";
+import { openThreadToTheSide } from "./workspaceSplitsStore";
 import {
   createSidebarCollisionDetection,
   createSidebarSortingStrategy,

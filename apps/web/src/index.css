@@ -16,6 +16,19 @@
   }
 }
 
+/* Route changes (router.ts): a short cross-fade instead of parts of the page swapping out of step. */
+html:active-view-transition-type(t3-navigate)::view-transition-old(root),
+html:active-view-transition-type(t3-navigate)::view-transition-new(root) {
+  animation-duration: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:active-view-transition-type(t3-navigate)::view-transition-old(root),
+  html:active-view-transition-type(t3-navigate)::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 /* On mobile, morph the expanded hero composer into the compact docked
    composer while it moves; the rest of the app remains visually stationary. */
 html[data-mobile-composer-route-transition="true"]::view-transition-old(root),
@@ -473,9 +486,8 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   border: 1px solid var(--liquid-glass-edge);
   box-shadow: var(--liquid-glass-shadow);
   -webkit-backdrop-filter: blur(18px) saturate(1.4) brightness(0.85);
+  /* No SVG displacement here: menus, toasts and docked cards stay cheap to repaint. */
   backdrop-filter: blur(18px) saturate(1.4) brightness(0.85);
-  /* Chromium bends the backdrop through the SVG filter in index.html. */
-  backdrop-filter: url(#t3-liquid-glass) blur(18px) saturate(1.4) brightness(0.85);
 
   @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     background: var(--popover) !important;
@@ -2586,14 +2598,16 @@ code {
   outline-offset: -2px;
 }
 
-/* Liquid glass composer. Unlayered, so it wins over the composer's own glass utilities. */
+/* Liquid glass composer. Unlayered, so it wins over the composer's own glass utilities.
+   Plain blur only: the SVG displacement re-rasterizes this always-visible surface every frame
+   the timeline scrolls or the column resizes. */
 [data-slot="composer-shell"]::before {
   background:
     var(--liquid-glass-sheen),
     color-mix(in srgb, var(--chat-composer-glass-surface) 55%, transparent);
   box-shadow: var(--liquid-glass-shadow);
   -webkit-backdrop-filter: blur(18px) saturate(1.4) brightness(0.85);
-  backdrop-filter: url(#t3-liquid-glass) blur(18px) saturate(1.4) brightness(0.85);
+  backdrop-filter: blur(18px) saturate(1.4) brightness(0.85);
 }
 
 /* macOS desktop: the window is see-through (native sidebar vibrancy), so the wallpaper shows

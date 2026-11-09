@@ -116,6 +116,7 @@ const layerTest = ProviderHostLive.layer.pipe(
   Layer.provideMerge(
     Layer.mock(BackgroundPolicy.BackgroundPolicy)({
       shouldRunScopeWork: () => Effect.succeed(false),
+      awaitProviderStatusDemand: Effect.void,
     }),
   ),
   Layer.provideMerge(ServerSettings.layerTest()),

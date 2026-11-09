@@ -34,6 +34,18 @@ export function deriveTimelineMinimapItems(
   return items;
 }
 
+/**
+ * Item indices that get a tick when the rail fits only `maxTicks`. Evenly
+ * sampled so ticks stay evenly spaced, always keeping the first and last turn.
+ */
+export function resolveTimelineMinimapTickIndices(itemCount: number, maxTicks: number): number[] {
+  const tickCount = Math.min(itemCount, Math.max(2, Math.floor(maxTicks)));
+  if (tickCount <= 1) return tickCount === 1 ? [0] : [];
+  return Array.from({ length: tickCount }, (_, tick) =>
+    Math.round((tick * (itemCount - 1)) / (tickCount - 1)),
+  );
+}
+
 function resolveFinalAssistantTextForTurn(
   rows: ReadonlyArray<MessagesTimelineRow>,
   userRowIndex: number,
