@@ -1,13 +1,12 @@
 import { createServerEnvironmentAtoms } from "@t3tools/client-runtime/state/server";
-import type { ServerConfig } from "@t3tools/contracts";
-import { Atom } from "effect/reactivity";
+import { createEnvironmentSessionAtoms } from "@t3tools/client-runtime/state/session";
 
 import { connectionAtomRuntime } from "../connection/runtime.ts";
 
-// No offline cache, so a config is known only once the server sends it.
-const noInitialConfig = Atom.make<ServerConfig | null>(null);
+/** Per environment: the session grants (scopes) of this client. */
+export const environmentSession = createEnvironmentSessionAtoms(connectionAtomRuntime);
 
-/** Per environment: server config and settings (`settingsValueAtom`: thread labels...). */
+/** Per environment: server config and settings (`settingsValueAtom`: thread labels, snooze presets...). */
 export const serverEnvironment = createServerEnvironmentAtoms(connectionAtomRuntime, {
-  initialConfigValueAtom: () => noInitialConfig,
+  initialConfigValueAtom: environmentSession.initialConfigValueAtom,
 });
