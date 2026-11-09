@@ -5,6 +5,7 @@ import type {
   TuiCommand,
   TuiFeature,
   TuiKeybinding,
+  TuiPrPanelTab,
   TuiStatusItem,
   TuiView,
   TuiViewFooter,
@@ -20,6 +21,7 @@ export interface ShellRegistry {
   readonly overlays: ReadonlyMap<string, TuiView>;
   readonly statusItems: ReadonlyArray<TuiStatusItem>;
   readonly paletteSources: ReadonlyArray<PaletteSource>;
+  readonly prPanelTabs: ReadonlyArray<TuiPrPanelTab>;
 }
 
 function indexById<T extends { readonly id: string }>(kind: string, items: ReadonlyArray<T>) {
@@ -80,6 +82,12 @@ export function buildShellRegistry(features: ReadonlyArray<TuiFeature>): ShellRe
         features.flatMap((feature) => feature.paletteSources ?? []),
       ).values(),
     ],
+    prPanelTabs: [
+      ...indexById(
+        "PR panel tab",
+        features.flatMap((feature) => feature.prPanelTabs ?? []),
+      ).values(),
+    ].toSorted((left, right) => left.order - right.order),
   };
 }
 

@@ -58,11 +58,31 @@ What a feature can add (all optional, see `app/feature.ts`):
 | `commands`       | Run by keybindings and listed in the command palette. | id                              |
 | `keybindings`    | Global keys; the palette shows the first as a hint.   | key + `when`                    |
 | `paletteSources` | More command palette rows (threads, projects...).     | the palette's query             |
+| `prPanelTabs`    | A tab of the pull request panel (see below).          | the panel's tab bar             |
 
 A `PaletteSource` returns rows from atoms through `get`; the palette filters, ranks and highlights
 them. Recent picks come first. Set `search: true` when the source matches the query itself (as the
 server message search does): it then gets the typed query, debounced, and its rows show unfiltered.
 Item ids must be unique within the source.
+
+### Pull request panel tabs
+
+`features/pr-panel` owns the right panel `pr-panel` (`ctrl+y`) for the current thread's linked
+pull requests. It draws the PR line and the tab bar; each tab is a `prPanelTabs` contribution:
+
+```ts
+prPanelTabs: [{ id: "code", title: "Code", order: 40, component: CodeTab }];
+```
+
+- `order` sorts the tabs: Summary 10, Timeline 20, Checks 30, Code 40.
+- The component gets `{ target, focused, width, height }`. `target` is
+  `{ environmentId, reference: PullRequestRef }` of the selected PR; `height` excludes the panel's
+  two header lines.
+- Only the active tab is mounted, keyed by tab and PR. Its `useRegionInput("panel", ...)` sees
+  keys before the panel. The panel uses `[` / `]` and `1`-`9` (tabs), `n` (next linked PR) and
+  `r` (refresh); return `false` for them unless the tab needs one in a state the panel does not.
+- Read PR data from `pullRequestAtoms` in `state/pullRequests.ts` (detail, activity, checks,
+  `checkLog`, `diff`). Do not create a second `createPullRequestEnvironmentAtoms`.
 
 View, footer, panel and overlay components get `{ focused, width, height }`: the inner size in
 cells. A view gets the rows its footers leave. Render inside that box. For long lists, render only

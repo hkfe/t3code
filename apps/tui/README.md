@@ -90,4 +90,11 @@ replies to it, `y` copies its text, `f` forks the thread from an assistant respo
 to the message a reply quotes. Copy uses the OSC 52 escape: the terminal must allow clipboard
 writes (Terminal.app does not; tmux needs `set -g set-clipboard on`).
 
+### Pull request panel
+
+`ctrl+y` opens the pull requests linked to the open thread in the right panel, and closes it.
+`[` / `]` or `1`-`9` switch tabs, `n` goes to the next linked pull request and `r` reloads.
+`j` / `k`, `ctrl+d` / `ctrl+u` and `g` / `G` scroll. In Timeline, `e` expands commit runs. In
+Checks, `j` / `k` select a check, `enter` shows its log (GitHub Actions) and `escape` hides it.
+
 Building a feature? Read [CONTRIBUTING-TUI.md](./CONTRIBUTING-TUI.md).

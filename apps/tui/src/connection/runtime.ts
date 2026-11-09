@@ -12,6 +12,7 @@ import {
 } from "@t3tools/client-runtime/platform";
 import { ManagedRelay } from "@t3tools/client-runtime/relay";
 import { layerRemoteHttpClient } from "@t3tools/client-runtime/rpc";
+import { PullRequestDiffLoader } from "@t3tools/client-runtime/state/pull-requests";
 import { ShellSnapshotLoader } from "@t3tools/client-runtime/state/shell";
 import {
   BoundedThreadSnapshotLoader,
@@ -120,6 +121,7 @@ const layerSnapshotLoaders = Layer.mergeAll(
   ShellSnapshotLoader.layer,
   BoundedThreadSnapshotLoader.layer,
   ThreadHistoryController.layer,
+  PullRequestDiffLoader.layer,
 );
 
 const layerConnection = layerSnapshotLoaders.pipe(
