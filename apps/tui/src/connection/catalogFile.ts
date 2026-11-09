@@ -20,43 +20,42 @@ function catalogError(operation: string, cause: unknown) {
   });
 }
 
-/** One JSON document with targets, profiles and bearer credentials, written 0600. */
+/**
+ * One JSON document with targets, profiles and bearer credentials, written 0600. Several TUI
+ * processes share it, so every read and update starts from the file, and writes rename a temp file.
+ * ponytail: no lock across processes; two updates in the same few ms can still drop one.
+ */
 export const makeCatalogFile = Effect.fn("tui.catalogFile.make")(function* (configDir: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = (yield* Path.Path).join(configDir, "connections.json");
   const lock = yield* Semaphore.make(1);
-  let cached: ConnectionCatalogDocument | undefined;
 
   const load = Effect.fn("tui.catalogFile.load")(function* () {
-    if (cached !== undefined) return cached;
     const exists = yield* fs.exists(path).pipe(Effect.mapError((e) => catalogError("read", e)));
     const raw = exists
       ? yield* fs.readFileString(path).pipe(Effect.mapError((e) => catalogError("read", e)))
       : "";
-    cached =
-      raw.trim() === ""
-        ? EMPTY_CONNECTION_CATALOG_DOCUMENT
-        : yield* decodeCatalog(raw).pipe(
-            Effect.catch((error) =>
-              Effect.logWarning("Discarding corrupt TUI connection catalog", error).pipe(
-                Effect.as(EMPTY_CONNECTION_CATALOG_DOCUMENT),
-              ),
+    return raw.trim() === ""
+      ? EMPTY_CONNECTION_CATALOG_DOCUMENT
+      : yield* decodeCatalog(raw).pipe(
+          Effect.catch((error) =>
+            Effect.logWarning("Discarding corrupt TUI connection catalog", error).pipe(
+              Effect.as(EMPTY_CONNECTION_CATALOG_DOCUMENT),
             ),
-          );
-    return cached;
+          ),
+        );
   });
 
   const write = Effect.fn("tui.catalogFile.write")(function* (document: ConnectionCatalogDocument) {
     const encoded = yield* encodeCatalog(document).pipe(
       Effect.mapError((e) => catalogError("encode", e)),
     );
-    const temporary = `${path}.tmp`;
+    const temporary = `${path}.${process.pid}.tmp`;
     yield* fs.makeDirectory(configDir, { recursive: true, mode: 0o700 }).pipe(
       Effect.andThen(fs.writeFileString(temporary, encoded, { mode: 0o600 })),
       Effect.andThen(fs.rename(temporary, path)),
       Effect.mapError((e) => catalogError("write", e)),
     );
-    cached = document;
   });
 
   return {

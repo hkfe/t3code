@@ -4,6 +4,7 @@ import { BearerConnectionCredential, CredentialStore } from "@t3tools/client-run
 import { Persistence } from "@t3tools/client-runtime/platform";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
+import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 
 import * as ConnectionStorage from "./storage.ts";
@@ -34,6 +35,30 @@ describe("TUI connection storage", () => {
       );
       const info = yield* fs.stat(`${configDir}/connections.json`);
       expect(info.mode & 0o777).toBe(0o600);
+    }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+  );
+
+  it.effect("keeps the sessions another TUI process saved while this one ran", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const configDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-tui-storage-" });
+      const a = yield* Layer.build(ConnectionStorage.layer(configDir));
+      const b = yield* Layer.build(ConnectionStorage.layer(configDir));
+      const store = CredentialStore.ConnectionCredentialStore;
+      const credential = (token: string) => new BearerConnectionCredential({ token });
+
+      yield* store.use((s) => s.get("from-a")).pipe(Effect.provide(a));
+      yield* store.use((s) => s.put("from-b", credential("b"))).pipe(Effect.provide(b));
+      expect(
+        Option.getOrNull(yield* store.use((s) => s.get("from-b")).pipe(Effect.provide(a))),
+      ).toEqual(credential("b"));
+      yield* store.use((s) => s.put("from-a", credential("a"))).pipe(Effect.provide(a));
+
+      const after = yield* withStorage(
+        configDir,
+        Effect.all([store.use((s) => s.get("from-a")), store.use((s) => s.get("from-b"))]),
+      );
+      expect(after.map(Option.getOrNull)).toEqual([credential("a"), credential("b")]);
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );
 

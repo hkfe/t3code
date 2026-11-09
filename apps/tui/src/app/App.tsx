@@ -45,7 +45,8 @@ function RegionFrame(props: {
   readonly footers?: ReadonlyArray<TuiViewFooter>;
 }) {
   const pane = useContext(PaneContext);
-  const focused = useAtomValue(focusAtom) === props.region && pane?.active !== false;
+  const hidden = useAtomValue(overlayAtom) !== null;
+  const focused = useAtomValue(focusAtom) === props.region && pane?.active !== false && !hidden;
   const Component = props.component;
   const innerHeight = Math.max(0, props.height - FRAME_Y - (props.title ? 1 : 0));
   const innerWidth = Math.max(0, (props.width ?? MIN_REGION_WIDTH) - FRAME_X);
@@ -54,6 +55,7 @@ function RegionFrame(props: {
   const [footerRows, setFooterRows] = useState(0);
   // Footer height is Yoga layout output, known only after render.
   useLayoutEffect(() => {
+    if (hidden) return;
     const rows = footerRef.current ? measureElement(footerRef.current).height : 0;
     if (rows !== footerRows) setFooterRows(rows);
   });
@@ -211,31 +213,31 @@ function Shell() {
 
   return (
     <Box flexDirection="column" width={columns} height={rows}>
-      {overlay ?? (
-        <Box height={bodyHeight}>
-          {sidebarWidth > 0 && (
-            <RegionFrame
-              region="sidebar"
-              name="sidebar"
-              width={sidebarWidth}
-              height={bodyHeight}
-              title="Threads"
-              component={registry.sidebar}
-            />
-          )}
-          <MainPanes width={mainWidth} height={bodyHeight} />
-          {panel && panelWidth > 0 && (
-            <RegionFrame
-              region="panel"
-              name={panel.id}
-              width={panelWidth}
-              height={bodyHeight}
-              title={panel.title}
-              component={panel.component}
-            />
-          )}
-        </Box>
-      )}
+      {overlay}
+      {/* Hidden, not unmounted, under an overlay: views keep scroll, drafts and cursors. */}
+      <Box height={bodyHeight} display={overlay ? "none" : "flex"}>
+        {sidebarWidth > 0 && (
+          <RegionFrame
+            region="sidebar"
+            name="sidebar"
+            width={sidebarWidth}
+            height={bodyHeight}
+            title="Threads"
+            component={registry.sidebar}
+          />
+        )}
+        <MainPanes width={mainWidth} height={bodyHeight} />
+        {panel && panelWidth > 0 && (
+          <RegionFrame
+            region="panel"
+            name={panel.id}
+            width={panelWidth}
+            height={bodyHeight}
+            title={panel.title}
+            component={panel.component}
+          />
+        )}
+      </Box>
       {leader.popup}
       {toast && <ToastLine toast={toast} width={columns} />}
       <StatusBar width={columns} />

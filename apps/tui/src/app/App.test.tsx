@@ -9,7 +9,7 @@ import { appAtomRegistry } from "../connection/runtime.ts";
 import { coreFeature } from "../features/core/index.tsx";
 import { features } from "../features/index.ts";
 import { panesAtom, usePaneRoute } from "../state/panes.ts";
-import { focusAtom, routeAtom } from "../state/ui.ts";
+import { focusAtom, overlayAtom, routeAtom } from "../state/ui.ts";
 import { App } from "./App.tsx";
 import type { TuiFeature, TuiViewProps } from "./feature.ts";
 import { useRegionInput } from "./input.tsx";
@@ -18,10 +18,11 @@ function KeyEcho(props: {
   readonly name: string;
   readonly letter: string;
   readonly first?: boolean;
+  readonly target?: "overlay";
 }) {
   const [seen, setSeen] = useState("no");
   useRegionInput(
-    "main",
+    props.target ?? "main",
     (press) => {
       if (press.input !== props.letter) return false;
       setSeen("yes");
@@ -59,6 +60,12 @@ const footerFeature: TuiFeature = {
           <KeyEcho name="footer" letter="f" first />
         </Box>
       ),
+    },
+  ],
+  overlays: [
+    {
+      id: "test-overlay",
+      component: () => <KeyEcho name="overlay" letter="f" target="overlay" />,
     },
   ],
 };
@@ -144,6 +151,17 @@ describe("App", () => {
       await vi.waitFor(() => expect(screen.lastFrame()).toContain("view rows 19"));
       screen.stdin.write("v");
       await vi.waitFor(() => expect(screen.lastFrame()).toContain("view saw v: yes"));
+
+      // The body stays mounted under an overlay, so it keeps its state, but it gets no keys.
+      registry.set(overlayAtom, "test-overlay");
+      await vi.waitFor(() => expect(screen.lastFrame()).toContain("overlay saw f: no"));
+      expect(screen.lastFrame()).not.toContain("view saw");
+      screen.stdin.write("f");
+      await vi.waitFor(() => expect(screen.lastFrame()).toContain("overlay saw f: yes"));
+      registry.set(overlayAtom, null);
+      await vi.waitFor(() => expect(screen.lastFrame()).toContain("view saw v: yes"));
+      expect(screen.lastFrame()).toContain("footer saw f: no");
+      expect(screen.lastFrame()).toContain("view rows 19");
       screen.stdin.write("f");
       await vi.waitFor(() => expect(screen.lastFrame()).toContain("footer saw f: yes"));
     } finally {

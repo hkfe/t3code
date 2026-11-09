@@ -26,7 +26,7 @@ import type {
 } from "@t3tools/contracts";
 import { Atom } from "effect/reactivity";
 import { Box } from "ink";
-import { useContext, useRef, useState } from "react";
+import { useContext, useState } from "react";
 
 import { revealControls, Text } from "../../app/text.tsx";
 import { useRegionInput } from "../../app/input.tsx";
@@ -153,20 +153,25 @@ function Idle({ onDefer }: { readonly onDefer: () => void }) {
   return <Text color={theme.textFaint}>Nothing here needs you. ctrl+r jumps to the next one.</Text>;
 }
 
-/** Shared by both cards: sends once at a time and keeps the last error. */
-function useSend() {
-  const [busy, setBusy] = useState(false);
+// By request id, in the registry, so a remounted card cannot answer one request twice.
+// ponytail: answered ids stay until exit; they are a few bytes each.
+const sendsAtom = Atom.make<Record<string, "sending" | "sent">>({}).pipe(Atom.keepAlive);
+
+/** Shared by both cards: answers a request once and keeps the last error. */
+function useSend(requestId: string) {
+  const registry = useContext(RegistryContext);
+  const busy = useAtomValue(sendsAtom, (sends) => sends[requestId] === "sending");
   const [error, setError] = useState<string | null>(null);
-  // A ref, so a second key before the next render cannot send twice.
-  const inFlight = useRef(false);
+  const mark = (state: "sending" | "sent" | null) =>
+    registry.update(sendsAtom, ({ [requestId]: _, ...rest }) =>
+      state === null ? rest : { ...rest, [requestId]: state },
+    );
   const send = (run: () => Promise<string | null>) => {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    setBusy(true);
+    if (registry.get(sendsAtom)[requestId] !== undefined) return;
+    mark("sending");
     setError(null);
     void run().then((message) => {
-      inFlight.current = false;
-      setBusy(false);
+      mark(message === null ? "sent" : null);
       setError(message);
     });
   };
@@ -205,7 +210,7 @@ function ApprovalCard(props: {
   const feedback = useAtomValue(feedbackAtom, (value) =>
     value?.requestId === approval.requestId ? value.text : null,
   );
-  const { busy, error, send } = useSend();
+  const { busy, error, send } = useSend(approval.requestId);
 
   useRegionInput(
     "panel",
@@ -314,7 +319,7 @@ function QuestionCard(props: {
   const { request, actions, draftKey } = props;
   const registry = useContext(RegistryContext);
   const stored = useAtomValue(questionDraftsAtom, (drafts) => drafts[draftKey]);
-  const { busy, error, send } = useSend();
+  const { busy, error, send } = useSend(request.requestId);
   const live = request.responseCapability !== "not_resumable";
   const enabled = live && props.canRespond;
 
