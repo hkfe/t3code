@@ -10,6 +10,7 @@ import { Atom, type AtomRegistry } from "effect/reactivity";
 import { resolveConfigDir } from "../../connection/configDir.ts";
 import { environmentCatalog } from "../../state/catalog.ts";
 import { environmentShell } from "../../state/shell.ts";
+import { panesAtom, threadInView } from "../../state/panes.ts";
 import { terminalFocusedAtom } from "../../state/terminal.ts";
 import { toastAtom } from "../../state/toast.ts";
 import { routeAtom } from "../../state/ui.ts";
@@ -57,12 +58,9 @@ export function startNotifications(
   const protocol = detectDesktopProtocol(process.env);
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
   const notifier = createThreadNotifier((notification) => {
-    const route = registry.get(routeAtom);
+    const workspace = { panes: registry.get(panesAtom), route: registry.get(routeAtom) };
     const output = deliverNotification(notification, {
-      inView:
-        route.view === "thread" &&
-        route.thread?.environmentId === notification.ref.environmentId &&
-        route.thread.threadId === notification.ref.threadId,
+      inView: threadInView(workspace, notification.ref),
       focused: registry.get(terminalFocusedAtom),
       settings,
       protocol,

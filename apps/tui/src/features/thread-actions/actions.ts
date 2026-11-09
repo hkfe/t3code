@@ -19,7 +19,7 @@ import { environmentSession } from "../../state/settings.ts";
 import { environmentShell } from "../../state/shell.ts";
 import { threadActionTargetAtom } from "../../state/threadActions.ts";
 import { threadEnvironment } from "../../state/threadCommands.ts";
-import { overlayAtom, routeAtom } from "../../state/ui.ts";
+import { focusAtom, overlayAtom, routeAtom } from "../../state/ui.ts";
 import { isSnoozed, type ThreadAction } from "./menu.ts";
 
 type Registry = AtomRegistry.AtomRegistry;
@@ -80,11 +80,11 @@ export const canOperateAtom = Atom.family((environmentId: EnvironmentId) =>
   }),
 );
 
-/** The sidebar's chosen thread if it set one (cleared here), else the open thread. */
-export function takeActionTarget(registry: Registry): ScopedThreadRef | null {
-  const target = registry.get(threadActionTargetAtom);
-  if (target !== null) registry.set(threadActionTargetAtom, null);
-  return target ?? registry.get(routeAtom).thread;
+/** The sidebar's selected thread while the sidebar has focus, else the open thread. */
+export function actionTarget(registry: Registry): ScopedThreadRef | null {
+  const selected =
+    registry.get(focusAtom) === "sidebar" ? registry.get(threadActionTargetAtom) : null;
+  return selected ?? registry.get(routeAtom).thread;
 }
 
 /** Runs a client-runtime command. Returns the error message, or null on success. */

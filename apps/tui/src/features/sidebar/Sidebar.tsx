@@ -6,7 +6,7 @@ import { threadLabelsOf, type OrchestrationV2WorkingPhase } from "@t3tools/contr
 import * as Option from "effect/Option";
 import { Atom } from "effect/reactivity";
 import { Box } from "ink";
-import { useContext, useRef, useState, useSyncExternalStore } from "react";
+import { useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
@@ -15,6 +15,7 @@ import { isKey, type KeyPress } from "../../app/keys.ts";
 import { environmentCatalog } from "../../state/catalog.ts";
 import { serverEnvironment } from "../../state/settings.ts";
 import { environmentShell } from "../../state/shell.ts";
+import { threadActionTargetAtom } from "../../state/threadActions.ts";
 import { environmentThreadShells } from "../../state/threadShells.ts";
 import { routeAtom } from "../../state/ui.ts";
 import { theme } from "../../theme/theme.ts";
@@ -171,6 +172,18 @@ export function Sidebar({ focused, height }: TuiViewProps) {
   });
   const found = rows.findIndex((row) => row.key === cursor.key);
   const selected = found >= 0 ? found : Math.min(cursor.index, Math.max(0, rows.length - 1));
+  const selectedRow = rows[selected];
+  const selectedThread = selectedRow?.kind === "thread" ? selectedRow.thread : null;
+  // Commands run outside React; they read the selection from this atom.
+  useEffect(() => {
+    registry.set(
+      threadActionTargetAtom,
+      selectedThread && {
+        environmentId: selectedThread.environmentId,
+        threadId: selectedThread.id,
+      },
+    );
+  }, [registry, selectedThread]);
   const moveTo = (index: number) => {
     const next = Math.max(0, Math.min(index, rows.length - 1));
     setCursor({ key: rows[next]?.key ?? "", index: next });

@@ -1,13 +1,17 @@
-import * as Option from "effect/Option";
 import type { AtomRegistry } from "effect/reactivity";
 
 import type { TuiFeature } from "../../app/feature.ts";
-import { environmentShell } from "../../state/shell.ts";
 import { overlayAtom, routeAtom } from "../../state/ui.ts";
 import { Composer } from "./Composer.tsx";
 import { MODEL_PICKER_OVERLAY, ModelPicker } from "./ModelPicker.tsx";
 import { nextRuntimeMode, resolveComposerSettings, type ComposerSettings } from "./settings.ts";
-import { composerDraftAtom, composerServer, threadKey, type ComposerDraft } from "./state.ts";
+import {
+  composerDraftAtom,
+  composerServer,
+  threadKey,
+  turnThreadAtom,
+  type ComposerDraft,
+} from "./state.ts";
 
 /** Changes the routed thread's draft settings; they go out with the next send. */
 function updateSettings(
@@ -16,10 +20,7 @@ function updateSettings(
 ) {
   const thread = registry.get(routeAtom).thread;
   if (thread === null) return;
-  const snapshot = Option.getOrNull(
-    registry.get(environmentShell.stateValueAtom(thread.environmentId)).snapshot,
-  );
-  const shell = snapshot?.threads.find((entry) => entry.id === thread.threadId);
+  const shell = registry.get(turnThreadAtom(thread));
   if (!shell) return;
   const draftAtom = composerDraftAtom(threadKey(thread));
   const draft = registry.get(draftAtom);

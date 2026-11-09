@@ -8,7 +8,7 @@ import {
   DEFAULT_PROVIDER_INTERACTION_MODE,
   type CommandId,
   type MessageId,
-  type OrchestrationV2ThreadShell,
+  type ProjectId,
   type ReplyContextRecord,
   type ServerProvider,
 } from "@t3tools/contracts";
@@ -21,6 +21,7 @@ import {
 } from "@t3tools/shared/composerContextReferences";
 
 import type { ComposerReplyTarget } from "../../state/composer.ts";
+import type { TurnThread } from "./settings.ts";
 import type { ComposerDraft } from "./state.ts";
 
 const TRUNCATION_MARKER = "\n… truncated …";
@@ -56,13 +57,20 @@ export function promptFromMessage(text: string): string {
   ).trim();
 }
 
-export function threadIsRunning(thread: OrchestrationV2ThreadShell): boolean {
+export function threadIsRunning(thread: TurnThread): boolean {
   return thread.activeRunId !== null;
+}
+
+/** A thread only this client knows yet; the first send creates it, in a new worktree if chosen. */
+export interface NewThreadSend {
+  readonly projectId: ProjectId;
+  readonly worktree: { readonly projectCwd: string; readonly baseBranch: string } | null;
 }
 
 /** Null when there is nothing to send. */
 export function buildTurnInput(input: {
-  readonly thread: OrchestrationV2ThreadShell;
+  readonly thread: TurnThread;
+  readonly newThread?: NewThreadSend;
   readonly draft: ComposerDraft;
   readonly reply: ComposerReplyTarget | null;
   readonly provider: ServerProvider | undefined;
@@ -83,6 +91,10 @@ export function buildTurnInput(input: {
     input.provider?.showInteractionModeToggle === false
       ? DEFAULT_PROVIDER_INTERACTION_MODE
       : (draft.interactionMode ?? thread.interactionMode);
+  const modelSelection = draft.modelSelection ?? thread.modelSelection;
+  const runtimeMode = draft.runtimeMode ?? thread.runtimeMode;
+  const titleSeed = deriveThreadTitleSeed({ text, attachments: draft.attachments });
+  const { newThread } = input;
   return {
     sentReply: reply !== null,
     input: {
@@ -98,14 +110,33 @@ export function buildTurnInput(input: {
         attachments: draft.attachments,
         ...(reply ? { context: { version: 1, records: [reply] } } : {}),
       },
-      modelSelection: draft.modelSelection ?? thread.modelSelection,
-      titleSeed: deriveThreadTitleSeed({ text, attachments: draft.attachments }),
-      runtimeMode: draft.runtimeMode ?? thread.runtimeMode,
+      modelSelection,
+      titleSeed,
+      runtimeMode,
       interactionMode,
       dispatchMode: resolveComposerDispatchMode({
         running: threadIsRunning(thread),
         alternateModifier: input.alternate,
         canSteer: !setupRunning,
+      }),
+      // As web's first send of a draft thread.
+      ...(newThread && {
+        bootstrap: {
+          createThread: {
+            projectId: newThread.projectId,
+            title: titleSeed,
+            modelSelection,
+            runtimeMode,
+            interactionMode,
+            branch: null,
+            worktreePath: null,
+            createdAt: input.createdAt,
+          },
+          ...(newThread.worktree && {
+            prepareWorktree: newThread.worktree,
+            runSetupScript: true,
+          }),
+        },
       }),
     },
   };

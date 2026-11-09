@@ -1,8 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
+import { foldSearchQuery, scoreSearchTerms } from "@t3tools/shared/paletteSearch";
 import type { AtomRegistry } from "effect/reactivity";
 
 import { Text } from "../../app/text.tsx";
-import type { KeyContext, TuiFeature } from "../../app/feature.ts";
+import type { KeyContext, PaletteSource, TuiFeature } from "../../app/feature.ts";
 import {
   closePane,
   focusNextPane,
@@ -12,9 +13,10 @@ import {
   swapPane,
   type Workspace,
 } from "../../state/panes.ts";
-import { threadActionTargetAtom } from "../../state/threadActions.ts";
 import { focusAtom, routeAtom } from "../../state/ui.ts";
 import { theme } from "../../theme/theme.ts";
+import { threadEntries } from "../command-palette/sources.ts";
+import { actionTarget } from "../thread-actions/actions.ts";
 
 function update(registry: AtomRegistry.AtomRegistry, change: (workspace: Workspace) => Workspace) {
   const next = change({ panes: registry.get(panesAtom), route: registry.get(routeAtom) });
@@ -32,6 +34,33 @@ function PaneStatus() {
     </Text>
   );
 }
+
+const SIDE_LIMIT = 8;
+
+/** Threads that match the query, opened in the next pane. Empty until something is typed. */
+const threadToSideSource: PaletteSource = {
+  id: "threads-to-side",
+  label: "To side",
+  search: true,
+  items: (get, query) => {
+    const normalized = foldSearchQuery(query);
+    if (normalized === "") return [];
+    return threadEntries(get)
+      .filter(({ thread, projectTitle }) =>
+        scoreSearchTerms(normalized, [thread.title, projectTitle ?? "", thread.branch ?? ""]),
+      )
+      .slice(0, SIDE_LIMIT)
+      .map(({ environmentId, thread, projectTitle }) => ({
+        id: `${environmentId}:${thread.id}`,
+        title: thread.title || "Untitled thread",
+        ...(projectTitle ? { detail: projectTitle } : {}),
+        run: ({ registry }) =>
+          update(registry, (workspace) =>
+            openToSide(workspace, { environmentId, threadId: thread.id }),
+          ),
+      }));
+  },
+};
 
 const noOverlay = ({ overlay }: KeyContext) => overlay === null;
 
@@ -66,13 +95,10 @@ export const splitPanesFeature: TuiFeature = {
       run: ({ registry }) => update(registry, swapPane),
     },
     {
-      // Set `threadActionTargetAtom` first to open another thread, as the thread actions do.
       id: "split-panes.openToSide",
       title: "Open thread to the side",
       run: ({ registry }) => {
-        const target = registry.get(threadActionTargetAtom);
-        if (target !== null) registry.set(threadActionTargetAtom, null);
-        const thread = target ?? registry.get(routeAtom).thread;
+        const thread = actionTarget(registry);
         if (thread !== null) update(registry, (workspace) => openToSide(workspace, thread));
       },
     },
@@ -84,5 +110,6 @@ export const splitPanesFeature: TuiFeature = {
     { key: "leader o", command: "split-panes.focusNext", when: noOverlay },
     { key: "leader m", command: "split-panes.swap", when: noOverlay },
   ],
+  paletteSources: [threadToSideSource],
   statusItems: [{ id: "split-panes.status", align: "left", component: PaneStatus }],
 };

@@ -6,6 +6,7 @@ import { useContext, useMemo, useState } from "react";
 import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
 import { orchestrationEnvironment } from "../../state/orchestration.ts";
+import { usePaneRoute } from "../../state/panes.ts";
 import { environmentThreadDetails } from "../../state/threads.ts";
 import { routeAtom } from "../../state/ui.ts";
 import { theme } from "../../theme/theme.ts";
@@ -91,7 +92,7 @@ function TurnChanges({
 
 /** The open thread's checkpoint diffs, as the web Changes panel shows them. Viewed marks stay local. */
 export function ChangesView(props: TuiViewProps) {
-  const thread = useAtomValue(routeAtom).thread;
+  const thread = usePaneRoute().thread;
   if (thread === null) return <Text color={theme.textFaint}>Select a thread.</Text>;
   return <Changes key={`${thread.environmentId}:${thread.threadId}`} thread={thread} {...props} />;
 }

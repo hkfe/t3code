@@ -1,6 +1,7 @@
 import { isReasoningSelect } from "@t3tools/client-runtime/model-traits";
 import {
   DEFAULT_PROVIDER_INTERACTION_MODE,
+  DEFAULT_RUNTIME_MODE,
   isProviderAvailable,
   type ModelSelection,
   type OrchestrationV2ThreadShell,
@@ -16,7 +17,12 @@ import {
   getProviderOptionCurrentValue,
   getProviderOptionDescriptors,
 } from "@t3tools/shared/model";
+import {
+  resolveProjectSettings,
+  type LegacyProjectSettingsFields,
+} from "@t3tools/shared/projectSettings";
 
+import type { NewThreadDraft } from "../../state/newThread.ts";
 import type { ComposerDraft } from "./state.ts";
 
 /** Web's runtimeModeConfig labels, in the same order. */
@@ -27,6 +33,45 @@ export const RUNTIME_MODE_LABELS: Readonly<Record<RuntimeMode, string>> = {
   "full-access": "Full access",
 };
 const RUNTIME_MODES = Object.keys(RUNTIME_MODE_LABELS) as RuntimeMode[];
+
+/** What sending needs of a thread: a server shell, or a new thread's defaults. */
+export type TurnThread = Pick<
+  OrchestrationV2ThreadShell,
+  | "id"
+  | "projectId"
+  | "worktreePath"
+  | "modelSelection"
+  | "runtimeMode"
+  | "interactionMode"
+  | "activeRunId"
+  | "activityRunStatus"
+>;
+
+/** A new thread's settings: the project's defaults, else the first available model. */
+export function newThreadSettings(
+  newThread: NewThreadDraft,
+  project: LegacyProjectSettingsFields | null,
+  config: ServerConfig | null,
+): TurnThread | null {
+  const defaults = config
+    ? resolveProjectSettings(config.settings, newThread.projectId, project).settings
+    : null;
+  const first = modelPickerRows(config, "")[0];
+  const modelSelection =
+    defaults?.defaultModelSelection ??
+    (first ? createModelSelection(first.provider.instanceId, first.model.slug) : null);
+  if (modelSelection === null) return null;
+  return {
+    id: newThread.threadId,
+    projectId: newThread.projectId,
+    worktreePath: null,
+    modelSelection,
+    runtimeMode: defaults?.defaultRuntimeMode ?? DEFAULT_RUNTIME_MODE,
+    interactionMode: DEFAULT_PROVIDER_INTERACTION_MODE,
+    activeRunId: null,
+    activityRunStatus: null,
+  };
+}
 
 export interface ComposerSettings {
   readonly selection: ModelSelection;
@@ -53,7 +98,7 @@ export function effortDescriptor(
 
 /** What the next send uses: the draft's overrides over the thread's settings. */
 export function resolveComposerSettings(
-  thread: OrchestrationV2ThreadShell,
+  thread: TurnThread,
   draft: ComposerDraft,
   config: ServerConfig | null,
 ): ComposerSettings {
