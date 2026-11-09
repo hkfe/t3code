@@ -73,7 +73,7 @@ export function KeyRouter(props: {
       (entry) => entry.current,
     );
     if (targets.some((target) => target.first && target.handler(press))) return;
-    const binding = findKeybinding(props.bindings, press, { focus, overlay });
+    const binding = findKeybinding(props.bindings, press, { focus, overlay, registry });
     const command = binding ? props.commands.get(binding.command) : undefined;
     if (command) {
       command.run({ registry, exit });

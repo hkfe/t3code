@@ -45,9 +45,9 @@ right panel; `ctrl+b` toggles the sidebar; `alt+←` / `alt+→` resize the focu
 `↑`/`↓` or `ctrl+n`/`ctrl+p` move, `enter` runs, `esc` closes. The web app also opens it with
 Cmd+Shift+P, which terminals cannot send.
 
-Split panes show up to four threads at once. `ctrl+y` splits the focused pane side by side and
+Split panes show up to four threads at once. `alt+v` splits the focused pane side by side and
 `alt+y` stacks it; `ctrl+f` moves focus to the next pane, `alt+x` swaps it with the next one and
-`ctrl+x` closes it. A thread you open from the sidebar or the palette opens in the focused pane.
+`alt+c` closes it. A thread you open from the sidebar or the palette opens in the focused pane.
 "Open thread to the side" in the palette opens it beside the focused pane.
 
 `ctrl+x` opens the agent overview: threads that need you, working ones with a live timer, and
@@ -99,7 +99,7 @@ Checks, `j` / `k` select a check, `enter` shows its log (GitHub Actions) and `es
 
 ### Diffs
 
-`ctrl+x` shows the open thread's changes (its checkpoint diffs); `escape` goes back. The command
+`ctrl+v` shows the open thread's changes (its checkpoint diffs); `escape` goes back. The command
 palette's "Toggle pull request code" opens the linked pull request's changed files in the right
 panel.
 

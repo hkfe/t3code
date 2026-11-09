@@ -78,9 +78,9 @@ export const splitPanesFeature: TuiFeature = {
     },
   ],
   keybindings: [
-    { key: "ctrl+y", command: "split-panes.splitRight", when: noOverlay },
+    { key: "alt+v", command: "split-panes.splitRight", when: noOverlay },
     { key: "alt+y", command: "split-panes.splitDown", when: noOverlay },
-    { key: "ctrl+x", command: "split-panes.close", when: noOverlay },
+    { key: "alt+c", command: "split-panes.close", when: noOverlay },
     { key: "ctrl+f", command: "split-panes.focusNext", when: noOverlay },
     { key: "alt+x", command: "split-panes.swap", when: noOverlay },
   ],

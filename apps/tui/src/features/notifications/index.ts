@@ -23,7 +23,7 @@ export const notificationsFeature: TuiFeature = {
     {
       key: OPEN_THREAD_KEY,
       command: "notifications.openThread",
-      when: ({ overlay }) => overlay === null,
+      when: ({ overlay, registry }) => overlay === null && registry.get(toastAtom) !== null,
     },
   ],
   statusItems: [{ id: "notifications.status", align: "left", component: NotificationStatus }],

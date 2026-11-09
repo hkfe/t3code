@@ -32,7 +32,7 @@ export const diffFeature: TuiFeature = {
       },
     },
   ],
-  keybindings: [{ key: "ctrl+x", command: "diff.toggle", when: ({ overlay }) => overlay === null }],
+  keybindings: [{ key: "ctrl+v", command: "diff.toggle", when: ({ overlay }) => overlay === null }],
   views: [{ id: CHANGES_VIEW, component: ChangesView }],
   panels: [{ id: CODE_PANEL, title: "Code", component: CodePanel }],
 };

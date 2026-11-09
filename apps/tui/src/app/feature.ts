@@ -12,6 +12,8 @@ export interface CommandContext {
 export interface KeyContext {
   readonly focus: Region;
   readonly overlay: string | null;
+  /** Read atoms in `when`, e.g. to bind a key only while a toast shows. */
+  readonly registry: AtomRegistry.AtomRegistry;
 }
 
 /**
