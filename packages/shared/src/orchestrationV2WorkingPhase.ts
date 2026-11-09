@@ -162,11 +162,12 @@ function classifySegment(segment: string): OrchestrationV2WorkingPhase | "neutra
   const program = (tokens[0] ?? "").split("/").pop() ?? "";
   const args = tokens.slice(1);
   if (program === "" || NEUTRAL_PROGRAMS.has(program)) return "neutral";
-  if (MEASURE.test(segment) && !READ_PROGRAMS.has(program)) return "measuring";
+  // A test run wins over measure words in its arguments, such as a test name filter.
   if (TEST_PROGRAMS.has(program)) return "testing";
-  if (TASK_RUNNERS.has(program)) {
-    return args.some((arg) => TEST_TASK.test(arg)) ? "testing" : null;
-  }
+  const runner = TASK_RUNNERS.has(program);
+  if (runner && args.some((arg) => TEST_TASK.test(arg))) return "testing";
+  if (MEASURE.test(segment) && !READ_PROGRAMS.has(program)) return "measuring";
+  if (runner) return null;
   if (
     program === "apply_patch" ||
     (program === "sed" && args.some((arg) => arg.startsWith("-i")))
@@ -225,7 +226,14 @@ export function deriveWorkingPhase(input: {
   let latest: OrchestrationV2TurnItem | null = null;
   for (const item of input.turnItems) {
     if (item.runId !== input.activeRun.id || !types.includes(item.type)) continue;
-    if (latest === null || item.ordinal >= latest.ordinal) latest = item;
+    // Same order as the SQL shell read: ordinal, then id.
+    if (
+      latest === null ||
+      item.ordinal > latest.ordinal ||
+      (item.ordinal === latest.ordinal && item.id > latest.id)
+    ) {
+      latest = item;
+    }
   }
   return latest === null ? null : classifyTurnItemPhase(latest);
 }

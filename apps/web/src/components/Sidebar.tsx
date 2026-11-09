@@ -3681,6 +3681,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           pinnedThreads.length +
             activeThreads.length +
             workingThreads.length +
+            waitingThreads.length +
             snoozedThreads.length +
             settledCount ===
             0 ? (

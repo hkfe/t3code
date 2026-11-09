@@ -940,9 +940,8 @@ export function resolveSidebarWaitingReason(
       ? thread.blockedOnThreadWait === true
         ? (thread.threadWaitCount ?? 0)
         : 0
-      : thread.pendingBackgroundTasks.filter(
-          (task) => task.kind === "subagent" || task.kind === "background_task",
-        ).length;
+      : // Other background tasks (workflows, shells) are not threads and fall to a neutral reason.
+        thread.pendingBackgroundTasks.filter((task) => task.kind === "subagent").length;
   if (threads > 0) return threads === 1 ? "1 thread" : `${threads} threads`;
   if (thread.runtime?.status !== "idle") return null;
   const watched = thread.pullRequests.filter((link) => link.watch !== undefined);

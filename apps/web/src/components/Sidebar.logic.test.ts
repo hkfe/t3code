@@ -1065,6 +1065,15 @@ describe("Working shelf (beta)", () => {
       reason: "1 thread",
     },
     {
+      name: "a finished run with a background workflow left",
+      thread: {
+        ...waiting,
+        pendingBackgroundTasks: [{ taskId: "workflow", kind: "background_task" as const }],
+      },
+      shelf: "waiting",
+      reason: null,
+    },
+    {
       name: "a pull request watch with pending checks",
       thread: { ...waiting, pullRequests: [watchedPullRequest("pending")] },
       shelf: "waiting",

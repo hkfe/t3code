@@ -20,6 +20,8 @@ describe("classifyCommandPhase", () => {
     ["sed -n 1,40p file.ts | head", "reading"],
     ["git diff --stat", "reading"],
     ["sed -i '' 's/a/b/' file.ts", "editing"],
+    ["npm test -- --testNamePattern=profiling", "testing"],
+    ["npx vitest run bench.test.ts", "testing"],
     ["cargo bench", "measuring"],
     ["hyperfine 'node a.js'", "measuring"],
     ["node scripts/screenshot.mjs", "measuring"],
@@ -81,6 +83,12 @@ describe("deriveWorkingPhase", () => {
   it("follows the latest tool item, even after it completes", () => {
     const message = item("message", 3, { type: "assistant_message", text: "", streaming: true });
     expect(deriveWorkingPhase({ activeRun, turnItems: [edit, read, message] })).toBe("editing");
+  });
+
+  it("breaks an ordinal tie by id, like the SQL shell read", () => {
+    const tied = item("z-read", 2, { type: "dynamic_tool", toolName: "Read", input: {} });
+    expect(deriveWorkingPhase({ activeRun, turnItems: [tied, edit] })).toBe("reading");
+    expect(deriveWorkingPhase({ activeRun, turnItems: [edit, tied] })).toBe("reading");
   });
 
   it("ignores other runs and runs that are not running", () => {

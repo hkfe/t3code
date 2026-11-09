@@ -6388,7 +6388,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
             SELECT j.turn_item_id FROM orchestration_v2_projection_turn_items j
             WHERE j.run_id = run.value
               AND j.type IN (SELECT value FROM json_each(${encodeIdList(WORKING_PHASE_TURN_ITEM_TYPES)}))
-            ORDER BY j.ordinal DESC LIMIT 1
+            ORDER BY j.ordinal DESC, j.turn_item_id DESC LIMIT 1
           )
           FROM json_each(${encodeIdList(activeRunIds)}) run
         )
