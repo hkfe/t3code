@@ -406,19 +406,18 @@ it.effect("sets thread labels from the settings list and rejects unknown labels"
     const server = yield* McpServer.McpServer;
     const call = (args: Record<string, unknown>) =>
       server
-        .callTool({ name: "t3_thread_labels", arguments: args })
+        .callTool({ name: "t3_thread_organize", arguments: args })
         .pipe(
           Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
           Effect.provideService(McpSchema.McpServerClient, client),
         );
-    const set = yield* call({ action: "set", labels: ["Feature"] });
-    expect(set.structuredContent).toMatchObject({ threadLabels: ["feature"] });
+    yield* call({ action: "label", labels: ["Feature"] });
     expect(dispatched).toMatchObject([
       { type: "thread.tag.set", threadId, tag: "bug", tagged: false },
       { type: "thread.tag.set", threadId, tag: "feature", tagged: true },
     ]);
     dispatched.length = 0;
-    expect(declaredFailure(yield* call({ action: "add", labels: ["private"] }))).toMatchObject({
+    expect(declaredFailure(yield* call({ action: "label", labels: ["private"] }))).toMatchObject({
       code: "invalid_request",
       message: expect.stringContaining('Unknown label "private". Use one of: bug, feature'),
     });

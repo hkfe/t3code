@@ -88,19 +88,6 @@ const required = <A>(value: A | undefined, name: string) =>
         }),
       )
     : Effect.succeed(value);
-const readThreadLabels = Effect.fn("mcp.readThreadLabels")(function* (threadId?: ThreadId) {
-  const settings = yield* (yield* ServerSettings.ServerSettingsService).getSettings.pipe(
-    Effect.mapError(unavailable),
-  );
-  const context = yield* readThread(threadId);
-  const tags = context.projection.thread.tags ?? [];
-  const available = settings.threadLabels;
-  return {
-    ...context,
-    available,
-    threadLabels: available.filter((label) => tags.includes(label.id)).map((label) => label.id),
-  };
-});
 /** Matches an id exactly, else a name ignoring case. */
 const resolveLabelIds = (inputs: ReadonlyArray<string>, available: ReadonlyArray<ThreadLabel>) => {
   const ids: string[] = [];
@@ -301,48 +288,6 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
       }),
     ),
   ),
-  t3_thread_labels: McpToolAccess.either(
-    (input) => input.action === "list",
-    McpToolAccess.reads((input) =>
-      readThreadLabels(input.threadId).pipe(
-        Effect.map(({ available, threadLabels }) => ({ available, threadLabels })),
-      ),
-    ),
-    writesThread((input) =>
-      Effect.gen(function* () {
-        const { threads, projection, available, threadLabels } = yield* readThreadLabels(
-          input.threadId,
-        );
-        const ids = yield* resolveLabelIds(yield* required(input.labels, "labels"), available);
-        const next =
-          input.action === "set"
-            ? ids
-            : input.action === "add"
-              ? [...threadLabels, ...ids.filter((id) => !threadLabels.includes(id))]
-              : threadLabels.filter((id) => !ids.includes(id));
-        const changes = [
-          ...threadLabels.filter((id) => !next.includes(id)).map((tag) => ({ tag, tagged: false })),
-          ...next.filter((id) => !threadLabels.includes(id)).map((tag) => ({ tag, tagged: true })),
-        ];
-        for (const change of changes) {
-          yield* threads
-            .dispatch({
-              type: "thread.tag.set",
-              commandId: yield* newCommandId(),
-              threadId: projection.thread.id,
-              ...change,
-            })
-            .pipe(Effect.mapError(dispatchFailure));
-        }
-        return {
-          available,
-          threadLabels: available
-            .filter((label) => next.includes(label.id))
-            .map((label) => label.id),
-        };
-      }),
-    ),
-  ),
   t3_queue: McpToolAccess.either(
     (input) => input.action === "list" || input.action === "read",
     McpToolAccess.reads((input) =>
@@ -419,6 +364,34 @@ export const layer = McpToolAccess.toLayer(ThreadToolkit, {
         return yield* threads
           .settleThread({ ...common, byOwnAgent: caller?.id === projection.thread.id })
           .pipe(Effect.mapError(dispatchFailure));
+      }
+      if (input.action === "label") {
+        const settings = yield* (yield* ServerSettings.ServerSettingsService).getSettings.pipe(
+          Effect.mapError(unavailable),
+        );
+        const available = settings.threadLabels;
+        const next = yield* resolveLabelIds(yield* required(input.labels, "labels"), available);
+        // Only labels from the settings list change; other thread tags stay.
+        const current = (projection.thread.tags ?? []).filter((tag) =>
+          available.some((label) => label.id === tag),
+        );
+        const changes = [
+          ...current.filter((id) => !next.includes(id)).map((tag) => ({ tag, tagged: false })),
+          ...next.filter((id) => !current.includes(id)).map((tag) => ({ tag, tagged: true })),
+        ];
+        let sequence = 0;
+        for (const change of changes) {
+          const result = yield* threads
+            .dispatch({
+              ...common,
+              commandId: yield* newCommandId(),
+              type: "thread.tag.set",
+              ...change,
+            })
+            .pipe(Effect.mapError(dispatchFailure));
+          sequence = result.sequence;
+        }
+        return { sequence };
       }
       let command: OrchestrationV2Command;
       switch (input.action) {

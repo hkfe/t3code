@@ -19,7 +19,6 @@ import {
   RunId,
   NonNegativeInt,
   ProjectId,
-  ThreadLabel,
 } from "@t3tools/contracts";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Schema from "effect/Schema";
@@ -33,7 +32,7 @@ import * as ServerSettings from "../../../serverSettings.ts";
 
 const ThreadOrganizeTool = Tool.make("t3_thread_organize", {
   description:
-    "Pin, snooze, settle, archive, or mark a thread unread. Omit `threadId` for this thread. `snooze` needs `snoozedUntil`. Settling this thread applies at turn end. A failed turn or queued message leaves it active.",
+    "Pin, snooze, settle, archive, label, or mark unread. Omit `threadId` for this thread. `snooze` needs `snoozedUntil`; `label`: `labels` from settings. Settling this thread waits for turn end. A failed turn or queued message keeps it active.",
   parameters: Schema.Struct({
     environmentId: OrchestratorMcpEnvironmentTarget,
     threadId: Schema.optional(ThreadId),
@@ -47,8 +46,10 @@ const ThreadOrganizeTool = Tool.make("t3_thread_organize", {
       "archive",
       "unarchive",
       "mark_unread",
+      "label",
     ]),
     snoozedUntil: Schema.optional(IsoDateTime),
+    labels: Schema.optional(Schema.Array(Schema.String)),
   }),
   success: Schema.Union([
     OrchestrationV2DispatchCommandResult,
@@ -60,6 +61,7 @@ const ThreadOrganizeTool = Tool.make("t3_thread_organize", {
     McpInvocationContext.McpInvocationContext,
     ThreadManagementService.ThreadManagementService,
     SecureRandom.SecureRandom,
+    ServerSettings.ServerSettingsService,
   ],
 })
   .annotate(Tool.Title, "Organize a thread")
@@ -76,25 +78,6 @@ const commandTool = {
     SecureRandom.SecureRandom,
   ],
 };
-const ThreadLabelsTool = Tool.make("t3_thread_labels", {
-  ...commandTool,
-  description:
-    "Color-coded thread labels from the user's T3 settings. Omit `threadId` for this thread. list: the allowed labels and this thread's. set: replace its labels with `labels`. add, remove: change only `labels`. Give label ids or names from list; other labels are rejected.",
-  parameters: Schema.Struct({
-    action: Schema.Literals(["list", "set", "add", "remove"]),
-    environmentId: OrchestratorMcpEnvironmentTarget,
-    threadId: Schema.optional(ThreadId),
-    labels: Schema.optional(Schema.Array(Schema.String).check(Schema.isMaxLength(32))),
-  }),
-  success: Schema.Struct({
-    available: Schema.Array(ThreadLabel),
-    threadLabels: Schema.Array(Schema.String),
-  }),
-  dependencies: [...commandTool.dependencies, ServerSettings.ServerSettingsService],
-})
-  .annotate(Tool.Title, "Label a thread")
-  .annotate(Tool.Destructive, false);
-
 const queueEntry = Schema.Struct({
   queuedRunId: RunId,
   text: Schema.String,
@@ -264,7 +247,6 @@ export const ThreadToolkit = Toolkit.make(
   ThreadConfigureTool,
   ThreadTransferTool,
   ThreadOrganizeTool,
-  ThreadLabelsTool,
   PendingRequestTool,
   QueueTool,
 );
