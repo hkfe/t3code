@@ -38,6 +38,8 @@ async function main(argv: ReadonlyArray<string>) {
   const instance = render(<App registry={appAtomRegistry} features={features} />, {
     alternateScreen: true,
     exitOnCtrlC: false,
+    // Rewrites only the lines that changed instead of the whole screen each frame.
+    incrementalRendering: true,
   });
   await instance.waitUntilExit();
   appAtomRegistry.dispose();

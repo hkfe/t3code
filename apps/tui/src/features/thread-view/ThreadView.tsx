@@ -168,7 +168,9 @@ function Messages({
                 </Text>
               ) : entry ? (
                 <Text wrap="truncate">
-                  <Text color={theme.accent}>{entry.block === selected ? "▌ " : "  "}</Text>
+                  <Text color={theme.accent}>
+                    {selected !== -1 && entry.block === selected ? "▌ " : "  "}
+                  </Text>
                   <Row line={entry.line} />
                 </Text>
               ) : null}
