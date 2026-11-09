@@ -14,6 +14,7 @@ import { splitPanesFeature } from "./split-panes/index.tsx";
 import { switcherFeature } from "./switcher/index.ts";
 import { threadActionsFeature } from "./thread-actions/index.ts";
 import { notificationsFeature } from "./notifications/index.ts";
+import { terminalFeature } from "./terminal/index.ts";
 import { threadViewFeature } from "./thread-view/index.ts";
 
 /** Every feature, one line each. Earlier features win keybinding ties. */
@@ -34,4 +35,5 @@ export const features: ReadonlyArray<TuiFeature> = [
   prPanelFeature,
   diffFeature,
   settingsFeature,
+  terminalFeature,
 ];
