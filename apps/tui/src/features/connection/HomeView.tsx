@@ -7,6 +7,7 @@ import { useContext, useState } from "react";
 
 import { Text } from "../../app/text.tsx";
 import type { TuiViewProps } from "../../app/feature.ts";
+import { toPairingUrl } from "../../cli.ts";
 import { connectPairingUrl, environmentCatalog } from "../../state/catalog.ts";
 import { serverHintAtom } from "../../state/serverHint.ts";
 import { theme } from "../../theme/theme.ts";
@@ -30,7 +31,7 @@ export function HomeView({ focused }: TuiViewProps) {
       void runAtomCommand(
         registry,
         connectPairingUrl,
-        { pairingUrl: text.trim() },
+        { pairingUrl: toPairingUrl(text, serverHint) },
         {
           reportFailure: false,
         },
@@ -59,7 +60,7 @@ export function HomeView({ focused }: TuiViewProps) {
       <Text color={theme.textMuted}>
         On the server, open Settings › Connections and create a pairing link, or run `t3 pair`.
       </Text>
-      <Text color={theme.textMuted}>Focus this pane and paste the pairing URL.</Text>
+      <Text color={theme.textMuted}>Focus this pane and paste the pairing link or code.</Text>
       {pairing.status === "pairing" && <Text color={theme.warning}>Pairing…</Text>}
       {pairing.status === "failed" && <Text color={theme.danger}>{pairing.message}</Text>}
     </Box>

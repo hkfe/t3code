@@ -1,9 +1,9 @@
 import packageJson from "../package.json" with { type: "json" };
-import { parseArgs, USAGE } from "./cli.ts";
+import { findLocalServer, parseArgs, USAGE } from "./cli.ts";
 import { probeBackground } from "./theme/background.ts";
 
 // Help, version and usage errors answer before the app bundle loads.
-const command = parseArgs(process.argv.slice(2));
+const command = parseArgs(process.argv.slice(2), () => findLocalServer(process.env));
 if (command.kind === "help") process.stdout.write(USAGE);
 else if (command.kind === "version") process.stdout.write(`${packageJson.version}\n`);
 else if (command.kind === "usage-error") {

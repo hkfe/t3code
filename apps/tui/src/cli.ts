@@ -4,12 +4,13 @@ import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 
 export const USAGE = `Usage: t3-tui [options]
-       t3-tui pair <pairing-url> [options]
+       t3-tui pair <pairing-link-or-code> [options]
 
 Opens the TUI on the saved servers. Without one, it shows where to pair, and names the
 desktop app's local server when it runs.
 
-  pair <url>          Exchange a pairing URL for a saved session, then open the TUI.
+  pair <link|code>    Exchange a pairing link or code for a saved session, then open the TUI.
+                      A t3code:// link or bare code pairs with --server or the local server.
   --server <url>      Server to pair with: a pairing URL pairs, a plain URL is the one to suggest.
   --config-dir <dir>  Where sessions are saved (default $XDG_CONFIG_HOME/t3-tui or ~/.config/t3-tui).
   -v, --version       Print the version.
@@ -33,7 +34,23 @@ type CliCommand =
 
 const isPairingUrl = (url: URL) => new URLSearchParams(url.hash.slice(1)).has("token");
 
-export function parseArgs(argv: ReadonlyArray<string>): CliCommand {
+/**
+ * Turns the desktop app's `t3code://app/pair#token=X` link, or a bare code, into an http
+ * pairing URL on `server`. Http(s) input and input without a server stay as they are.
+ */
+export function toPairingUrl(input: string, server: string | null): string {
+  const text = input.trim();
+  const url = URL.parse(text);
+  if (server === null || url?.protocol === "http:" || url?.protocol === "https:") return text;
+  const token = url ? new URLSearchParams(url.hash.slice(1)).get("token") : text;
+  if (!token || !/^[\w-]+$/.test(token)) return text;
+  return `${new URL(server).origin}/pair#token=${encodeURIComponent(token)}`;
+}
+
+export function parseArgs(
+  argv: ReadonlyArray<string>,
+  localServer: () => string | null = () => null,
+): CliCommand {
   let configDir: string | null = null;
   let server: string | null = null;
   let pairingUrl: string | null = null;
@@ -55,7 +72,7 @@ export function parseArgs(argv: ReadonlyArray<string>): CliCommand {
   }
   if (positional[0] === "pair") {
     if (positional.length !== 2) return { kind: "usage-error", message: "pair needs one URL." };
-    pairingUrl = positional[1]!;
+    pairingUrl = toPairingUrl(positional[1]!, server ?? localServer());
   } else if (positional.length > 0) {
     return { kind: "usage-error", message: `Unknown command ${positional[0]}.` };
   }

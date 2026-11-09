@@ -4,7 +4,7 @@ import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 
-import { findLocalServer, parseArgs } from "./cli.ts";
+import { findLocalServer, parseArgs, toPairingUrl } from "./cli.ts";
 
 const PAIR = "http://127.0.0.1:3773/pair#token=ABCD";
 const run = (fields: Partial<{ configDir: string; pairingUrl: string; server: string }>) => ({
@@ -71,5 +71,19 @@ describe("findLocalServer", () => {
 
   it("returns null without runtime info", () => {
     expect(findLocalServer({ T3CODE_HOME: "/nonexistent-t3-home" })).toBeNull();
+  });
+});
+
+describe("toPairingUrl", () => {
+  const server = "http://127.0.0.1:3773";
+  it("pairs a desktop link or bare code with the server", () => {
+    const want = "http://127.0.0.1:3773/pair#token=DGWNGCVPLT8K";
+    expect(toPairingUrl("t3code://app/pair#token=DGWNGCVPLT8K", server)).toBe(want);
+    expect(toPairingUrl(" DGWNGCVPLT8K ", server)).toBe(want);
+    expect(parseArgs(["pair", "DGWNGCVPLT8K"], () => server)).toMatchObject({ pairingUrl: want });
+  });
+  it("keeps http links, and input without a server", () => {
+    expect(toPairingUrl("https://h/pair#token=a", server)).toBe("https://h/pair#token=a");
+    expect(toPairingUrl("ABC", null)).toBe("ABC");
   });
 });
