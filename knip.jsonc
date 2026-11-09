@@ -101,6 +101,10 @@
       // reports an entire component module when nothing imports it.
       "ignoreIssues": { "src/components/ui/*.tsx": ["exports", "nsExports", "duplicates"] },
     },
+    "apps/tui": {
+      // The Vite+ pack entry (the t3-tui binary).
+      "entry": ["src/bin.tsx!"],
+    },
     "apps/marketing": {
       // `astro check` runs from the typecheck task in vite.config.ts, which knip does not read.
       "ignoreDependencies": ["@astrojs/check"],
