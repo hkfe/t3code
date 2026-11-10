@@ -5,7 +5,6 @@ import {
   HTML_RENDER_MAX_HEIGHT,
   HTML_RENDER_MAX_TITLE_LENGTH,
   HTML_RENDER_MIN_HEIGHT,
-  HTML_RENDER_THEME_GUIDE,
   HTML_RENDER_TOOL_NAME,
 } from "@t3tools/shared/htmlRender";
 import * as Schema from "effect/Schema";
@@ -70,7 +69,7 @@ export const HtmlPreviewTool = Tool.make("html_preview", {
 
 // This affects only the caller's thread, not its workspace, so read-only sandboxes and plan mode may use it.
 const HtmlRenderTool = Tool.make(HTML_RENDER_TOOL_NAME, {
-  description: `Show a finished HTML page (chart, diagram, mockup, or controls that reply to you) inline in this thread, above your final reply. Call html_guide before your first page for layout, look, and t3.send(). Do not announce or restate the page. Frame fits height to ${HTML_RENDER_MAX_FIT_HEIGHT}px. On mobile, content past the given height scrolls. ${HTML_RENDER_THEME_GUIDE}`,
+  description: `Show a finished HTML page (diagram, chart, mockup) inline in this thread, above your final reply. Read html_guide before you write the page. Do not announce or restate the page. Frame fits height to ${HTML_RENDER_MAX_FIT_HEIGHT}px. On mobile, content past the given height scrolls.`,
   parameters: Schema.Struct({
     html: Html,
     title: Schema.String.check(
@@ -80,6 +79,7 @@ const HtmlRenderTool = Tool.make(HTML_RENDER_TOOL_NAME, {
     height: Schema.Int.annotate({
       description: `Frame height in CSS pixels, ${HTML_RENDER_MIN_HEIGHT} to ${HTML_RENDER_MAX_HEIGHT}. Use the contentHeight from html_preview.`,
     }),
+    guide: Schema.String.annotate({ description: "The key html_guide returns." }),
   }),
   success: Schema.Struct({
     htmlRender: Schema.Struct({
@@ -106,7 +106,7 @@ const HtmlRenderTool = Tool.make(HTML_RENDER_TOOL_NAME, {
 
 const HtmlGuideTool = Tool.make("html_guide", {
   description: "Rules for html_render pages: when to use one, layout, look, and reply controls.",
-  success: Schema.Struct({ guide: Schema.String }),
+  success: Schema.Struct({ guide: Schema.String, key: Schema.String }),
 })
   .annotate(Tool.Title, "HTML guide")
   .annotate(Tool.Readonly, true)

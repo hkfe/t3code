@@ -37,9 +37,11 @@ describe("HtmlRenderDocument", () => {
   });
 });
 
-it("isolates the page from T3 and sends t3.send only after a click in it", async () => {
-  const html = injectHtmlRenderBootstrap(`<button>Lost me here</button><script>
+it("keeps T3 theme tokens, isolates the page from T3, and sends t3.send only after a click in it", async () => {
+  const html = injectHtmlRenderBootstrap(`<style>:root{--background:rgb(1, 2, 3)}</style>
+  <button>Lost me here</button><script>
     var probe = {};
+    probe.theme = getComputedStyle(document.documentElement).getPropertyValue("--background") !== "rgb(1, 2, 3)";
     try { probe.parent = typeof parent.document; } catch (e) { probe.parent = "blocked"; }
     try { probe.storage = typeof localStorage; } catch (e) { probe.storage = "blocked"; }
     t3.send("unprompted").then(
@@ -72,6 +74,7 @@ it("isolates the page from T3 and sends t3.send only after a click in it", async
 
   await vi.waitFor(() =>
     expect(reports.find((report) => report.type === "probe")?.probe).toEqual({
+      theme: true,
       parent: "blocked",
       storage: "blocked",
       unprompted: "t3.send works only right after a click or key press.",
