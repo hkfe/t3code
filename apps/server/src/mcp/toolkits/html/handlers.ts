@@ -1,5 +1,7 @@
 import { OrchestratorMcpFailure } from "@t3tools/contracts";
+import { HTML_RENDER_GUIDE } from "@t3tools/shared/htmlRender";
 import * as Effect from "effect/Effect";
+import * as Hash from "effect/Hash";
 
 import * as HtmlRender from "../../../htmlRender/HtmlRender.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
@@ -18,6 +20,9 @@ const toFailure = (error: { readonly _tag: string; readonly message: string }) =
     code: INVALID_PAGE_ERRORS.has(error._tag) ? "invalid_request" : "orchestration_error",
     message: error.message,
   });
+
+// Rendering needs this key, so a model reads the current guide before its first page.
+const GUIDE_KEY = (Hash.string(HTML_RENDER_GUIDE) >>> 0).toString(36);
 
 const handlers = {
   // Local-file access limits this host browser to T3-launched agents.
@@ -40,9 +45,16 @@ const handlers = {
     Effect.gen(function* () {
       const scope = yield* McpInvocationContext.McpInvocationContext;
       const { thread } = yield* McpInvocationContext.requireThreadScope(scope, "html_render");
+      const { guide, ...page } = input;
+      if (guide !== GUIDE_KEY) {
+        return yield* new OrchestratorMcpFailure({
+          code: "invalid_request",
+          message: "Call html_guide, follow it, and pass its key as guide.",
+        });
+      }
       const htmlRender = yield* HtmlRender.HtmlRender;
       const reference = yield* htmlRender
-        .publish({ threadId: thread.threadId, ...input })
+        .publish({ threadId: thread.threadId, ...page })
         .pipe(Effect.mapError(toFailure));
       return {
         htmlRender: reference,
@@ -50,6 +62,9 @@ const handlers = {
           "Shown to the reader above your reply. Don't mention or describe the page; reply with only what it doesn't already say.",
       };
     }),
+  ),
+  html_guide: McpToolAccess.reads(() =>
+    Effect.succeed({ guide: HTML_RENDER_GUIDE, key: GUIDE_KEY }),
   ),
 } satisfies McpToolAccess.Handlers<typeof HtmlToolkit.tools>;
 
@@ -59,4 +74,5 @@ export const layerPreview = McpToolAccess.toLayer(HtmlPreviewToolkit, {
 
 export const layerRender = McpToolAccess.toLayer(HtmlRenderToolkit, {
   html_render: handlers.html_render,
+  html_guide: handlers.html_guide,
 });

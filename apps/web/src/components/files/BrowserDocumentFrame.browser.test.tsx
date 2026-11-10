@@ -1,5 +1,6 @@
 import { injectHtmlRenderBootstrap } from "@t3tools/shared/htmlRender";
 import { describe, expect, it, vi } from "vite-plus/test";
+import { page } from "vite-plus/test/browser";
 
 import "~/index.css";
 import { render } from "../../../test/render";
@@ -34,6 +35,60 @@ describe("HtmlRenderDocument", () => {
     await delivered;
     expect(onContentHeight).toHaveBeenCalledTimes(1);
   });
+});
+
+it("keeps T3 theme tokens, isolates the page from T3, and sends t3.send only after a click in it", async () => {
+  const html = injectHtmlRenderBootstrap(`<style>:root{--background:rgb(1, 2, 3)}</style>
+  <button>Lost me here</button><script>
+    var probe = {};
+    probe.theme = getComputedStyle(document.documentElement).getPropertyValue("--background") !== "rgb(1, 2, 3)";
+    try { probe.parent = typeof parent.document; } catch (e) { probe.parent = "blocked"; }
+    try { probe.storage = typeof localStorage; } catch (e) { probe.storage = "blocked"; }
+    t3.send("unprompted").then(
+      function() { probe.unprompted = "sent"; },
+      function(e) { probe.unprompted = e.message; }
+    ).then(function() { parent.postMessage({ type: "probe", probe: probe }, "*"); });
+    document.querySelector("button").addEventListener("click", function() {
+      t3.send("Lost me here", { step: "parser" }).then(
+        function() { parent.postMessage({ type: "sent" }, "*"); },
+        function(e) { parent.postMessage({ type: "sent", error: e.message }, "*"); }
+      );
+    });
+  </script>`);
+  const src = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+  using _url = { [Symbol.dispose]: () => URL.revokeObjectURL(src) };
+  const reports: Array<{ type: string; probe?: unknown; error?: string }> = [];
+  const messages = new AbortController();
+  using _messages = { [Symbol.dispose]: () => messages.abort() };
+  window.addEventListener(
+    "message",
+    (event) => {
+      if (typeof event.data?.type === "string") reports.push(event.data);
+    },
+    { signal: messages.signal },
+  );
+  const onSendMessage = vi.fn(async (_text: string) => undefined);
+  await using screen = await render(
+    <HtmlRenderDocument src={src} title="Walkthrough" onSendMessage={onSendMessage} />,
+  );
+
+  await vi.waitFor(() =>
+    expect(reports.find((report) => report.type === "probe")?.probe).toEqual({
+      theme: true,
+      parent: "blocked",
+      storage: "blocked",
+      unprompted: "t3.send works only right after a click or key press.",
+    }),
+  );
+  expect(onSendMessage).not.toHaveBeenCalled();
+
+  await page.frameLocator(screen.getByTitle("Walkthrough")).getByRole("button").click();
+  await vi.waitFor(() =>
+    expect(reports.find((report) => report.type === "sent")).toEqual({ type: "sent" }),
+  );
+  expect(onSendMessage).toHaveBeenCalledExactlyOnceWith(
+    'Lost me here\n\n```json\n{\n  "step": "parser"\n}\n```',
+  );
 });
 
 it("keeps the first and last selected card rings inside the fitted renderer frame", async () => {

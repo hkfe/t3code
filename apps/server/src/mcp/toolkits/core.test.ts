@@ -255,15 +255,18 @@ it("bounds public command rejections and redacts internal dispatch causes", () =
 it.effect("returns an HTML render reference that Codex and Claude tool rows both carry", () =>
   Effect.gen(function* () {
     const server = yield* McpServer.McpServer;
-    const result = yield* server
-      .callTool({
-        name: "html_render",
-        arguments: { html: "<p>Revenue</p>", title: "Revenue", height: 240 },
-      })
-      .pipe(
-        Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
-        Effect.provideService(McpSchema.McpServerClient, client),
-      );
+    const call = (name: string, args: Record<string, unknown>) =>
+      server
+        .callTool({ name, arguments: args })
+        .pipe(
+          Effect.provideService(McpInvocationContext.McpInvocationContext, scope),
+          Effect.provideService(McpSchema.McpServerClient, client),
+        );
+    const page = { html: "<p>Revenue</p>", title: "Revenue", height: 240 };
+    const unread = yield* call("html_render", { ...page, guide: "guessed" });
+    expect(unread.isError).toBe(true);
+    const { key } = (yield* call("html_guide", {})).structuredContent as { key: string };
+    const result = yield* call("html_render", { ...page, guide: key });
     const reference = htmlRenderFromToolItem({
       toolName: "t3-code.html_render",
       output: result.structuredContent,
